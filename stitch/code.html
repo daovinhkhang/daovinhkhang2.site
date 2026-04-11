@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DAO VINH KHANG | AI &amp; Backend Engineer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#1f1f1f",
+                    "outline-variant": "#474747",
+                    "surface-container-low": "#1b1b1b",
+                    "tertiary": "#e5e2e1",
+                    "inverse-primary": "#5d5f5f",
+                    "on-secondary-fixed-variant": "#3a3c3c",
+                    "on-secondary": "#1a1c1c",
+                    "on-tertiary-fixed": "#ffffff",
+                    "surface-bright": "#393939",
+                    "inverse-surface": "#e2e2e2",
+                    "on-error": "#690005",
+                    "on-primary-container": "#000000",
+                    "error": "#ffb4ab",
+                    "on-primary-fixed": "#ffffff",
+                    "on-secondary-container": "#e2e2e2",
+                    "tertiary-fixed": "#5f5e5e",
+                    "surface": "#131313",
+                    "on-tertiary": "#1c1b1b",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-container": "#929090",
+                    "on-primary": "#1a1c1c",
+                    "secondary-fixed-dim": "#aaabab",
+                    "primary": "#ffffff",
+                    "tertiary-fixed-dim": "#474746",
+                    "on-primary-fixed-variant": "#e2e2e2",
+                    "on-surface-variant": "#c6c6c6",
+                    "background": "#131313",
+                    "on-background": "#e2e2e2",
+                    "on-secondary-fixed": "#1a1c1c",
+                    "primary-fixed": "#5d5f5f",
+                    "error-container": "#93000a",
+                    "surface-variant": "#353535",
+                    "surface-container-highest": "#353535",
+                    "surface-container-high": "#2a2a2a",
+                    "on-tertiary-container": "#000000",
+                    "surface-tint": "#c6c6c7",
+                    "primary-container": "#d4d4d4",
+                    "primary-fixed-dim": "#454747",
+                    "inverse-on-surface": "#303030",
+                    "on-surface": "#e2e2e2",
+                    "secondary-fixed": "#c6c6c7",
+                    "surface-dim": "#131313",
+                    "secondary": "#c6c6c7",
+                    "surface-container-lowest": "#0e0e0e",
+                    "secondary-container": "#454747",
+                    "outline": "#919191",
+                    "on-tertiary-fixed-variant": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Inter"],
+                    "label": ["Space Grotesk"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131313;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+        .monolithic-text {
+            letter-spacing: -0.04em;
+        }
+        .glass-nav {
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#131313]/60 backdrop-blur-xl flex justify-between items-center px-6 md:px-12 py-6 max-w-full">
+<div class="text-xl font-bold tracking-tighter text-white font-['Space_Grotesk'] uppercase">
+            ENGINEER_CORE
+        </div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-['Space_Grotesk'] uppercase tracking-tight font-bold text-white border-b-2 border-white pb-1 transition-all duration-300 ease-in-out hover:translate-y-[-2px]" href="#home">Home</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-tight font-bold text-zinc-500 hover:text-white transition-colors transition-all duration-300 ease-in-out hover:translate-y-[-2px]" href="#experience">Experience</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-tight font-bold text-zinc-500 hover:text-white transition-colors transition-all duration-300 ease-in-out hover:translate-y-[-2px]" href="#projects">Projects</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-tight font-bold text-zinc-500 hover:text-white transition-colors transition-all duration-300 ease-in-out hover:translate-y-[-2px]" href="#skills">Skills</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-tight font-bold text-zinc-500 hover:text-white transition-colors transition-all duration-300 ease-in-out hover:translate-y-[-2px]" href="#contact">Contact</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 font-['Space_Grotesk'] uppercase font-bold tracking-tighter hover:translate-y-[-2px] transition-transform duration-200">
+            Connect
+        </button>
+</nav>
+<!-- SideNavBar (Desktop Only Technical Trace) -->
+<aside class="hidden md:flex h-screen w-20 fixed left-0 top-0 border-r border-white/10 bg-[#131313]/80 backdrop-blur-2xl flex-col items-center py-8 z-40">
+<div class="text-lg font-black text-white font-['Space_Grotesk'] mb-12 transform -rotate-90 origin-center whitespace-nowrap">
+            SYSTEM.LOG <span class="text-[10px] font-normal opacity-50 ml-2">v2.0.48</span>
+</div>
+<div class="flex flex-col gap-8 flex-1 justify-center">
+<div class="group relative flex items-center justify-center bg-white text-[#131313] scale-90 w-12 h-12">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<div class="group relative flex items-center justify-center text-zinc-600 hover:text-white w-12 h-12 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</div>
+<div class="group relative flex items-center justify-center text-zinc-600 hover:text-white w-12 h-12 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="dtp">odp</span>
+</div>
+<div class="group relative flex items-center justify-center text-zinc-600 hover:text-white w-12 h-12 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+</div>
+<div class="group relative flex items-center justify-center text-zinc-600 hover:text-white w-12 h-12 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<span class="material-symbols-outlined text-zinc-600 hover:text-white cursor-pointer" data-icon="code">code</span>
+<span class="material-symbols-outlined text-zinc-600 hover:text-white cursor-pointer" data-icon="share">share</span>
+</div>
+</aside>
+<main class="md:ml-20">
+<!-- Hero Section -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-24 relative overflow-hidden bg-surface" id="home">
+<div class="absolute right-[-10%] top-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-20 pointer-events-none">
+<div class="w-full h-full relative">
+<img class="w-full h-full object-contain" data-alt="abstract glassmorphic 3D neural network sphere with interconnected light nodes and translucent monochrome crystalline structures on black background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJmPqE9wdig8PmG4Sjq0ULjJ0ptOiuOSeb0HJ0yLhlCsjlt-sfWVWCpiVRuPyQEMgAihSP2wA0VSbyJYWB5uasqQKBhs-YMZ9bB6VVVo8jpfcLdPQlTU1tyv9azGHzGsTEn4PfJ3ZD5fE3mPDloA_GUsnjprl6UP670LNA_H0ahQ7vX1WrlB2hqAkxTleJbvX18KUqEn9bcGmTEooObdt_qxtDRHNqsoARKGmMNrKAazFpgCyWjreXVJnx1y7Rp3Fe6K3lITeRLPni"/>
+</div>
+</div>
+<div class="max-w-5xl z-10">
+<h2 class="font-headline text-xs uppercase tracking-[0.4em] text-outline mb-6">ARCHITECT_IDENTITY</h2>
+<h1 class="font-headline text-6xl md:text-9xl font-bold monolithic-text leading-none mb-8">
+                    DAO VINH<br/>KHANG
+                </h1>
+<p class="font-headline text-xl md:text-3xl font-light text-on-surface-variant max-w-3xl mb-12">
+                    AI / Backend System Builder | RAG Architect | Multi-Agent Runtime Engineer
+                </p>
+<div class="flex flex-col md:flex-row gap-8 items-start md:items-center">
+<p class="font-body text-lg text-on-surface-variant max-w-lg border-l border-white/20 pl-6">
+                        Building real-world AI systems, not just demos. Owning the full lifecycle from architecture to production scaling.
+                    </p>
+<div class="bg-surface-container-lowest border border-outline-variant/20 p-4 font-mono text-[10px] text-zinc-500">
+<span class="text-primary">INIT</span> _SYSTEM_BOOT...<br/>
+<span class="text-primary">LOAD</span> RAG_CORE.SO...<br/>
+<span class="text-primary">STATUS</span> OPERATIONAL_v2.0
+                    </div>
+</div>
+</div>
+</section>
+<!-- Experience Section -->
+<section class="py-32 px-6 md:px-24 bg-surface-container-low" id="experience">
+<div class="max-w-6xl mx-auto">
+<h2 class="font-headline text-4xl font-bold mb-20 uppercase tracking-tighter">Professional_Trace</h2>
+<div class="space-y-1">
+<!-- bTaskee -->
+<div class="group grid md:grid-cols-12 gap-8 py-16 px-8 hover:bg-surface-bright/5 transition-colors border-t border-white/5">
+<div class="md:col-span-3">
+<p class="font-headline text-sm font-bold tracking-widest text-zinc-500">OCT 2025 – PRESENT</p>
+</div>
+<div class="md:col-span-9">
+<h3 class="font-headline text-2xl font-bold mb-2">bTaskee</h3>
+<p class="font-headline text-sm text-primary/60 mb-6 uppercase tracking-widest">AI / Backend Engineer</p>
+<ul class="font-body text-on-surface-variant space-y-4 max-w-2xl">
+<li class="flex gap-4"><span class="text-primary">/</span> Engineered Tasker V4 LangGraph-native runtime for complex agentic workflows.</li>
+<li class="flex gap-4"><span class="text-primary">/</span> Developed NodeRAG, achieving a 6x reduction in retrieval latency for enterprise datasets.</li>
+<li class="flex gap-4"><span class="text-primary">/</span> Scaled production AI services to handle high-concurrency real-world traffic.</li>
+</ul>
+</div>
+</div>
+<!-- EraX -->
+<div class="group grid md:grid-cols-12 gap-8 py-16 px-8 hover:bg-surface-bright/5 transition-colors border-t border-white/5">
+<div class="md:col-span-3">
+<p class="font-headline text-sm font-bold tracking-widest text-zinc-500">SEP 2024 – JUL 2025</p>
+</div>
+<div class="md:col-span-9">
+<h3 class="font-headline text-2xl font-bold mb-2">EraX / Gtel Global</h3>
+<p class="font-headline text-sm text-primary/60 mb-6 uppercase tracking-widest">AI Engineer</p>
+<ul class="font-body text-on-surface-variant space-y-4 max-w-2xl">
+<li class="flex gap-4"><span class="text-primary">/</span> Built production-ready AI chatbots tailored for specialized business domains.</li>
+<li class="flex gap-4"><span class="text-primary">/</span> Optimized mobile AI models to &lt;100MB footprint without significant accuracy loss.</li>
+<li class="flex gap-4"><span class="text-primary">/</span> Implemented ASR (Automatic Speech Recognition) pipeline improvements.</li>
+</ul>
+</div>
+</div>
+<!-- FPT IS -->
+<div class="group grid md:grid-cols-12 gap-8 py-16 px-8 hover:bg-surface-bright/5 transition-colors border-t border-white/5 border-b border-white/5">
+<div class="md:col-span-3">
+<p class="font-headline text-sm font-bold tracking-widest text-zinc-500">INTERNSHIP</p>
+</div>
+<div class="md:col-span-9">
+<h3 class="font-headline text-2xl font-bold mb-2">FPT IS</h3>
+<p class="font-headline text-sm text-primary/60 mb-6 uppercase tracking-widest">Backend Intern</p>
+<p class="font-body text-on-surface-variant max-w-2xl">
+                                Early R&amp;D with Flask-based microservices and DialoGPT fine-tuning for internal communication automation.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Projects Section (Bento Grid) -->
+<section class="py-32 px-6 md:px-24 bg-surface" id="projects">
+<div class="max-w-6xl mx-auto">
+<h2 class="font-headline text-4xl font-bold mb-20 uppercase tracking-tighter">Engineered_Artifacts</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Tasker Platform -->
+<div class="md:col-span-2 bg-surface-container-high p-10 flex flex-col justify-between group cursor-pointer hover:bg-surface-container-highest transition-all duration-300">
+<div>
+<div class="flex justify-between items-start mb-12">
+<span class="material-symbols-outlined text-4xl" data-icon="hub">hub</span>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-white/5 text-[10px] font-headline uppercase tracking-widest">LangGraph</span>
+<span class="px-3 py-1 bg-white/5 text-[10px] font-headline uppercase tracking-widest">FastAPI</span>
+</div>
+</div>
+<h3 class="font-headline text-3xl font-bold mb-4">Tasker Platform Evolution</h3>
+<p class="font-body text-on-surface-variant text-lg">Next-gen agentic framework enabling autonomous task resolution through complex state-machine runtimes.</p>
+</div>
+<div class="mt-12 flex items-center text-xs font-headline tracking-[0.2em] text-primary group-hover:gap-4 transition-all">
+                            VIEW_SPECIFICATIONS <span class="material-symbols-outlined text-sm ml-2" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Speech to Text -->
+<div class="bg-surface-container-lowest border border-white/5 p-10 flex flex-col justify-between group cursor-pointer hover:bg-surface-container-high transition-all">
+<div>
+<div class="flex justify-between items-start mb-12">
+<span class="material-symbols-outlined text-4xl" data-icon="settings_voice">settings_voice</span>
+</div>
+<h3 class="font-headline text-2xl font-bold mb-4">Vietnamese STT</h3>
+<p class="font-body text-zinc-500 text-sm">Fine-tuned acoustic models for high-accuracy Vietnamese speech transcription in noisy environments.</p>
+</div>
+<div class="mt-8 flex gap-2 flex-wrap">
+<span class="px-2 py-1 bg-white/10 text-[9px] font-headline uppercase">PyTorch</span>
+<span class="px-2 py-1 bg-white/10 text-[9px] font-headline uppercase">Whisper</span>
+</div>
+</div>
+<!-- Odoo AI -->
+<div class="bg-surface-container-lowest border border-white/5 p-10 flex flex-col justify-between group cursor-pointer hover:bg-surface-container-high transition-all">
+<div>
+<div class="flex justify-between items-start mb-12">
+<span class="material-symbols-outlined text-4xl" data-icon="smart_toy">smart_toy</span>
+</div>
+<h3 class="font-headline text-2xl font-bold mb-4">Odoo AI Agent</h3>
+<p class="font-body text-zinc-500 text-sm">Integrated LLM capabilities directly into ERP workflows for automated data entry and retrieval.</p>
+</div>
+<div class="mt-8 flex gap-2">
+<span class="px-2 py-1 bg-white/10 text-[9px] font-headline uppercase">Odoo</span>
+<span class="px-2 py-1 bg-white/10 text-[9px] font-headline uppercase">OpenAI</span>
+</div>
+</div>
+<!-- Mobile AI -->
+<div class="md:col-span-2 bg-surface-container-high p-10 flex flex-col justify-between group cursor-pointer hover:bg-surface-container-highest transition-all">
+<div class="grid md:grid-cols-2 gap-12">
+<div>
+<div class="flex justify-between items-start mb-12">
+<span class="material-symbols-outlined text-4xl" data-icon="phone_android">phone_android</span>
+</div>
+<h3 class="font-headline text-3xl font-bold mb-4">Mobile AI Suite</h3>
+<p class="font-body text-on-surface-variant text-lg">On-device inference optimization reducing model size to &lt;100MB for real-time mobile deployment.</p>
+</div>
+<div class="bg-black/40 p-6 font-mono text-xs flex flex-col justify-center border-l border-white/10">
+<div class="mb-4">
+<div class="flex justify-between mb-1"><span>COMPRESSION_RATIO</span> <span>84.2%</span></div>
+<div class="w-full bg-white/5 h-1"><div class="bg-primary w-[84%] h-full"></div></div>
+</div>
+<div>
+<div class="flex justify-between mb-1"><span>LATENCY_MS</span> <span>12ms</span></div>
+<div class="w-full bg-white/5 h-1"><div class="bg-primary w-[12%] h-full"></div></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stock & Sentiment -->
+<div class="md:col-span-3 grid md:grid-cols-2 gap-6">
+<div class="bg-surface-container-low p-10 border border-white/5 group">
+<h3 class="font-headline text-xl font-bold mb-4 uppercase tracking-tighter">Stock Forecasting</h3>
+<div class="flex items-baseline gap-2 mb-6">
+<span class="text-4xl font-headline font-bold">4.2%</span>
+<span class="text-xs text-zinc-500 font-mono">MAPE_SCORE</span>
+</div>
+<p class="font-body text-sm text-zinc-500">Advanced time-series forecasting using LSTM-GRUs for market volatility prediction.</p>
+</div>
+<div class="bg-surface-container-low p-10 border border-white/5 group">
+<h3 class="font-headline text-xl font-bold mb-4 uppercase tracking-tighter">Sentiment Engine</h3>
+<div class="flex items-baseline gap-2 mb-6">
+<span class="text-4xl font-headline font-bold">92%</span>
+<span class="text-xs text-zinc-500 font-mono">ACCURACY</span>
+</div>
+<p class="font-body text-sm text-zinc-500">Multilingual NLP engine for real-time customer feedback categorization and tone analysis.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Skills Section (Matrix Style) -->
+<section class="py-32 px-6 md:px-24 bg-surface-container-lowest" id="skills">
+<div class="max-w-6xl mx-auto">
+<h2 class="font-headline text-4xl font-bold mb-20 uppercase tracking-tighter">Core_Capabilities</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
+<div>
+<h4 class="font-headline text-xs font-bold text-zinc-500 uppercase tracking-[0.3em] mb-8 pb-4 border-b border-white/10">01 AI SYSTEMS &amp; LLM</h4>
+<ul class="font-headline text-sm space-y-4 font-bold">
+<li class="hover:text-primary transition-colors cursor-default">LANGGRAPH</li>
+<li class="hover:text-primary transition-colors cursor-default">RAG ARCHITECTURE</li>
+<li class="hover:text-primary transition-colors cursor-default">PROMPT ENGINEERING</li>
+<li class="hover:text-primary transition-colors cursor-default">MULTI-AGENT RUNTIMES</li>
+<li class="hover:text-primary transition-colors cursor-default">VECTOR DATABASES</li>
+</ul>
+</div>
+<div>
+<h4 class="font-headline text-xs font-bold text-zinc-500 uppercase tracking-[0.3em] mb-8 pb-4 border-b border-white/10">02 BACKEND &amp; PLATFORM</h4>
+<ul class="font-headline text-sm space-y-4 font-bold">
+<li class="hover:text-primary transition-colors cursor-default">PYTHON / FASTAPI</li>
+<li class="hover:text-primary transition-colors cursor-default">NODE.JS</li>
+<li class="hover:text-primary transition-colors cursor-default">DOCKER &amp; K8S</li>
+<li class="hover:text-primary transition-colors cursor-default">REDIS / RABBITMQ</li>
+<li class="hover:text-primary transition-colors cursor-default">POSTGRESQL</li>
+</ul>
+</div>
+<div>
+<h4 class="font-headline text-xs font-bold text-zinc-500 uppercase tracking-[0.3em] mb-8 pb-4 border-b border-white/10">03 ML / DEEP LEARNING</h4>
+<ul class="font-headline text-sm space-y-4 font-bold">
+<li class="hover:text-primary transition-colors cursor-default">PYTORCH</li>
+<li class="hover:text-primary transition-colors cursor-default">TENSORFLOW</li>
+<li class="hover:text-primary transition-colors cursor-default">MODEL OPTIMIZATION</li>
+<li class="hover:text-primary transition-colors cursor-default">TRANSFORMERS</li>
+<li class="hover:text-primary transition-colors cursor-default">ONNX / OPENVINO</li>
+</ul>
+</div>
+<div>
+<h4 class="font-headline text-xs font-bold text-zinc-500 uppercase tracking-[0.3em] mb-8 pb-4 border-b border-white/10">04 DATA &amp; APPLIED AI</h4>
+<ul class="font-headline text-sm space-y-4 font-bold">
+<li class="hover:text-primary transition-colors cursor-default">ETL PIPELINES</li>
+<li class="hover:text-primary transition-colors cursor-default">PANDAS / NUMPY</li>
+<li class="hover:text-primary transition-colors cursor-default">SCIKIT-LEARN</li>
+<li class="hover:text-primary transition-colors cursor-default">WEAVIATE</li>
+<li class="hover:text-primary transition-colors cursor-default">SENTIMENT ANALYSIS</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer / Contact Section -->
+<footer class="bg-[#0E0E0E] w-full py-16 px-6 md:px-12 border-t border-white/5" id="contact">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+<div>
+<h2 class="font-headline text-5xl font-bold mb-12 uppercase tracking-tighter">LET'S_BUILD</h2>
+<div class="flex flex-col gap-4 font-['Space_Grotesk'] text-[10px] tracking-widest uppercase text-zinc-600">
+<div class="flex items-center gap-4 group cursor-pointer hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="mail">mail</span>
+<span>khangdv.dev@gmail.com</span>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="share">share</span>
+<span>LinkedIn /daovinhkhang</span>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="code">code</span>
+<span>Github /khangdv-dev</span>
+</div>
+<div class="flex items-center gap-4 mt-8 opacity-40">
+<span class="material-symbols-outlined text-sm" data-icon="location_on">location_on</span>
+<span>Tân Bình, TP.HCM, Việt Nam</span>
+</div>
+</div>
+</div>
+<div class="text-right flex flex-col items-end gap-6">
+<div class="text-xl font-bold tracking-tighter text-white font-['Space_Grotesk'] uppercase">
+                        DAO VINH KHANG
+                    </div>
+<div class="font-['Space_Grotesk'] text-[10px] tracking-widest uppercase text-zinc-600">
+                        © 2024 ARCHITECT_OS. ALL RIGHTS RESERVED.
+                    </div>
+</div>
+</div>
+</footer>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#131313]/90 backdrop-blur-xl border-t border-white/10 px-6 py-4 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-white" href="#home">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[8px] font-headline font-bold uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#experience">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="text-[8px] font-headline font-bold uppercase">Exp</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#projects">
+<span class="material-symbols-outlined" data-icon="dtp">odp</span>
+<span class="text-[8px] font-headline font-bold uppercase">Pro</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#skills">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+<span class="text-[8px] font-headline font-bold uppercase">Skills</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-zinc-500" href="#contact">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+<span class="text-[8px] font-headline font-bold uppercase">Chat</span>
+</a>
+</nav>
+</body></html>
