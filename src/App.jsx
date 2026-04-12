@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import ThreeBackdrop from './components/ThreeBackdrop';
+import WhisperPipeline3D from './components/WhisperPipeline3D';
 
 const profilePoints = [
   'Passionate about unlocking the full potential of AI and leveraging it to deliver innovative solutions that drive meaningful results.',
@@ -156,6 +157,7 @@ function App() {
           <a href="#home">Home</a>
           <a href="#profile">Profile</a>
           <a href="#experience">Experience</a>
+          <a href="#whisper-flow">Whisper 3D</a>
           <a href="#projects">Projects</a>
           <a href="#skills">Skills</a>
           <a href="#contact">Contact</a>
@@ -246,6 +248,13 @@ function App() {
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section id="whisper-flow" className="section-lowest">
+          <div className="section-inner">
+            <h2>EraX_Whisper_Runtime</h2>
+            <WhisperPipeline3D />
           </div>
         </section>
 
@@ -345,6 +354,7 @@ function App() {
       <nav className="mobile-nav">
         <a href="#home">Home</a>
         <a href="#profile">Profile</a>
+        <a href="#whisper-flow">Whisper</a>
         <a href="#experience">Exp</a>
         <a href="#projects">Projects</a>
         <a href="#contact">Contact</a>
