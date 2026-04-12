@@ -18,20 +18,80 @@ function sectionFromAnchor(anchorId) {
 }
 
 function getViewportBounds() {
+  const size = getAssistantSize();
   return {
     minX: 10,
-    maxX: Math.max(10, window.innerWidth - 330),
+    maxX: Math.max(10, window.innerWidth - size.width - 18),
     minY: 16,
-    maxY: Math.max(16, window.innerHeight - 200),
+    maxY: Math.max(16, window.innerHeight - size.height - 18),
   };
 }
 
-function getRandomWaypoint() {
+function getRandomWaypoint(origin = null) {
   const bounds = getViewportBounds();
+  const size = getAssistantSize();
+  const leftBandMaxX = clamp(window.innerWidth * 0.24, bounds.minX + 24, Math.max(bounds.minX + 24, window.innerWidth * 0.34 - size.width));
+
+  if (!origin) {
+    return {
+      x: clamp(bounds.minX + 18 + Math.random() * Math.max(1, leftBandMaxX - bounds.minX - 18), bounds.minX, bounds.maxX),
+      y: clamp(window.innerHeight * 0.42 + (Math.random() - 0.5) * 120, bounds.minY, bounds.maxY),
+    };
+  }
+
   return {
-    x: bounds.minX + Math.random() * Math.max(1, bounds.maxX - bounds.minX),
-    y: bounds.minY + Math.random() * Math.max(1, bounds.maxY - bounds.minY),
+    x: clamp(origin.x + (Math.random() - 0.5) * 90, bounds.minX, leftBandMaxX),
+    y: clamp(origin.y + (Math.random() - 0.5) * 70, bounds.minY, bounds.maxY),
   };
+}
+
+function getLeftLoiterStart() {
+  const bounds = getViewportBounds();
+  const size = getAssistantSize();
+  return {
+    x: clamp(bounds.minX + 26, bounds.minX, Math.max(bounds.minX, window.innerWidth * 0.2 - size.width * 0.15)),
+    y: clamp(window.innerHeight * 0.42, bounds.minY, bounds.maxY),
+  };
+}
+
+function getRightLoiterStart() {
+  const bounds = getViewportBounds();
+  const size = getAssistantSize();
+  return {
+    x: clamp(window.innerWidth - size.width - 28, bounds.minX, bounds.maxX),
+    y: clamp(window.innerHeight * 0.42, bounds.minY, bounds.maxY),
+  };
+}
+
+function getSectionLoiterStart(anchorId) {
+  if (anchorId === 'home' || anchorId === 'contact') {
+    return getRightLoiterStart();
+  }
+
+  return getLeftLoiterStart();
+}
+
+function getSectionWaypoint(anchorId, origin = null) {
+  if (anchorId === 'home' || anchorId === 'contact') {
+    const bounds = getViewportBounds();
+    const size = getAssistantSize();
+    const minX = clamp(window.innerWidth * 0.66, bounds.minX, bounds.maxX);
+    const maxX = clamp(window.innerWidth - size.width - 16, minX, bounds.maxX);
+
+    if (!origin) {
+      return {
+        x: clamp(minX + Math.random() * Math.max(1, maxX - minX), bounds.minX, bounds.maxX),
+        y: clamp(window.innerHeight * 0.42 + (Math.random() - 0.5) * 120, bounds.minY, bounds.maxY),
+      };
+    }
+
+    return {
+      x: clamp(origin.x + (Math.random() - 0.5) * 90, minX, maxX),
+      y: clamp(origin.y + (Math.random() - 0.5) * 70, bounds.minY, bounds.maxY),
+    };
+  }
+
+  return getRandomWaypoint(origin);
 }
 
 function getAssistantSize() {
@@ -52,7 +112,7 @@ function getCenterWaypoint() {
 }
 
 function trimHistory(history) {
-  return history.slice(-5);
+  return history.slice(-10);
 }
 
 function isTourIntent(message) {
@@ -87,6 +147,19 @@ function normalizeAction(action) {
   };
 }
 
+const CONTACT_QUICK_ACTIONS = [
+  {
+    type: 'open-link',
+    label: 'LinkedIn',
+    url: 'https://www.linkedin.com/in/dao-vinh-khang-32748023a/',
+  },
+  {
+    type: 'open-gmail',
+    label: 'Gmail',
+    url: 'https://mail.google.com/mail/?view=cm&fs=1&to=daovinhkhang0834@gmail.com',
+  },
+];
+
 function AssistantRobot() {
   const botRef = useRef(null);
   const shellRef = useRef(null);
@@ -98,6 +171,8 @@ function AssistantRobot() {
   const [aiReply, setAiReply] = useState("Welcome to Dao Vinh Khang's portfolio.");
   const [isLoading, setIsLoading] = useState(false);
   const [isTourRunning, setIsTourRunning] = useState(false);
+  const [replyPhase, setReplyPhase] = useState('idle');
+  const [quickActions, setQuickActions] = useState([]);
   const [robotCue, setRobotCue] = useState({
     expression: 'idle',
     followCursor: true,
@@ -109,8 +184,9 @@ function AssistantRobot() {
   const chatHistoryRef = useRef([]);
   const lastProactiveSectionRef = useRef(null);
   const lastProactiveAtRef = useRef(0);
-  const proactiveBusyRef = useRef(false);
   const proactiveMuteUntilRef = useRef(0);
+  const proactiveTimerRef = useRef(0);
+  const proactiveRequestIdRef = useRef(0);
   const tourTimerRef = useRef(0);
   const tourActiveRef = useRef(false);
   const focusAnchorRef = useRef(null);
@@ -119,6 +195,11 @@ function AssistantRobot() {
     active: false,
     startedAt: 0,
     hiddenAtCenter: false,
+  });
+  const replyAnimationRef = useRef({
+    generation: 0,
+    timeoutId: 0,
+    intervalId: 0,
   });
 
   const currentRef = useRef({ x: 0, y: 0 });
@@ -148,6 +229,15 @@ function AssistantRobot() {
 
   useEffect(() => {
     activeAnchorRef.current = activeAnchor;
+  }, [activeAnchor]);
+
+  useEffect(() => {
+    if (dragRef.current.active || focusAnchorRef.current || tourActiveRef.current) {
+      return;
+    }
+
+    targetRef.current = getSectionWaypoint(activeAnchor, currentRef.current);
+    roamCooldownUntilRef.current = performance.now() + 120;
   }, [activeAnchor]);
 
   useEffect(() => {
@@ -184,6 +274,87 @@ function AssistantRobot() {
   const extendFreeze = (ms) => {
     const now = performance.now();
     freezeUntilRef.current = Math.max(freezeUntilRef.current, now + ms);
+  };
+
+  const stopReplyAnimation = () => {
+    replyAnimationRef.current.generation += 1;
+    if (replyAnimationRef.current.timeoutId) {
+      window.clearTimeout(replyAnimationRef.current.timeoutId);
+      replyAnimationRef.current.timeoutId = 0;
+    }
+    if (replyAnimationRef.current.intervalId) {
+      window.clearInterval(replyAnimationRef.current.intervalId);
+      replyAnimationRef.current.intervalId = 0;
+    }
+    setReplyPhase('idle');
+  };
+
+  const cancelPendingProactive = () => {
+    proactiveRequestIdRef.current += 1;
+    if (proactiveTimerRef.current) {
+      window.clearTimeout(proactiveTimerRef.current);
+      proactiveTimerRef.current = 0;
+    }
+  };
+
+  const startProcessingReply = (baseText = 'Thinking') => {
+    stopReplyAnimation();
+    const generation = replyAnimationRef.current.generation;
+    let tick = 0;
+    setReplyPhase('processing');
+    setAiReply(baseText);
+
+    replyAnimationRef.current.intervalId = window.setInterval(() => {
+      if (replyAnimationRef.current.generation !== generation) {
+        return;
+      }
+
+      tick += 1;
+      const dots = '.'.repeat((tick % 3) + 1);
+      setAiReply(`${baseText}${dots}`);
+    }, 340);
+  };
+
+  const streamReply = (text) => {
+    stopReplyAnimation();
+    const trimmed = `${text || ''}`.trim();
+    if (!trimmed) {
+      setAiReply('');
+      setReplyPhase('idle');
+      return Promise.resolve();
+    }
+
+    const generation = replyAnimationRef.current.generation;
+    const tokens = trimmed.match(/\S+\s*/g) || [trimmed];
+    setReplyPhase('streaming');
+    setAiReply('');
+
+    return new Promise((resolve) => {
+      let index = 0;
+
+      const tick = () => {
+        if (replyAnimationRef.current.generation !== generation) {
+          resolve();
+          return;
+        }
+
+        index += 1;
+        setAiReply(tokens.slice(0, index).join(''));
+
+        if (index >= tokens.length) {
+          replyAnimationRef.current.timeoutId = 0;
+          setReplyPhase('idle');
+          resolve();
+          return;
+        }
+
+        const token = tokens[index - 1]?.trim() || '';
+        const delay = /[.!?]$/.test(token) ? 135 : /[,;:]$/.test(token) ? 90 : 38;
+        replyAnimationRef.current.timeoutId = window.setTimeout(tick, delay);
+      };
+
+      replyAnimationRef.current.timeoutId = window.setTimeout(tick, 80);
+    });
   };
 
   const requestAssistant = async (content, section, anchor, mode = 'chat', history = []) => {
@@ -278,13 +449,12 @@ function AssistantRobot() {
       return;
     }
 
+    cancelPendingProactive();
     actionFlightRef.current = {
       active: true,
       startedAt: performance.now(),
       hiddenAtCenter: false,
     };
-    stopTour();
-    clearFocusAnchor();
     extendFreeze(5000);
     roamCooldownUntilRef.current = performance.now() + 5000;
 
@@ -295,6 +465,7 @@ function AssistantRobot() {
   };
 
   const stopTour = () => {
+    cancelPendingProactive();
     tourActiveRef.current = false;
     setIsTourRunning(false);
     if (tourTimerRef.current) {
@@ -330,23 +501,33 @@ function AssistantRobot() {
     const size = getAssistantSize();
     const assistantWidth = bot?.offsetWidth || size.width;
     const assistantHeight = bot?.offsetHeight || size.height;
+    const preferRight = anchorId === 'home' || anchorId === 'contact';
+    const rightInsetX = clamp(window.innerWidth * 0.4, bounds.minX, bounds.maxX);
 
     return {
-      x: clamp(rect.left - assistantWidth - 18, bounds.minX, bounds.maxX),
+      x: clamp(preferRight ? Math.max(rightInsetX, rect.right - assistantWidth * 0.62) : rect.left - assistantWidth - 18, bounds.minX, bounds.maxX),
       y: clamp(rect.top + rect.height * 0.5 - assistantHeight * 0.42, bounds.minY, bounds.maxY),
     };
   };
 
+  const syncQuickActions = (anchorId, enabled = false) => {
+    if (enabled && anchorId === 'contact') {
+      setQuickActions(CONTACT_QUICK_ACTIONS);
+      return;
+    }
+
+    setQuickActions([]);
+  };
+
   const runTour = (intro, stops, closing, tourPrompt) => {
     if (!stops.length) {
-      setAiReply(intro);
+      void streamReply(intro);
       return;
     }
 
     tourActiveRef.current = true;
     setIsTourRunning(true);
     proactiveMuteUntilRef.current = Date.now() + 120000;
-    setAiReply(intro);
     setRobotCue({
       expression: 'happy',
       followCursor: true,
@@ -359,7 +540,7 @@ function AssistantRobot() {
       }
 
       if (index >= stops.length) {
-        setAiReply(closing || 'That is the guided view. Ask me about any part and I can go deeper.');
+        void streamReply(closing || 'That is the guided view. Ask me about any part and I can go deeper.');
         setRobotCue({
           expression: 'idle',
           followCursor: true,
@@ -371,34 +552,37 @@ function AssistantRobot() {
       }
 
       const step = stops[index];
+      syncQuickActions(step.anchorId, true);
       setFocusAnchor(step.anchorId, Number.POSITIVE_INFINITY);
       const target = document.getElementById(step.anchorId);
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
+      startProcessingReply('Reviewing this section');
       requestAssistant(
         `Guide the visitor through this stop naturally. Tour request: ${tourPrompt}`,
         sectionFromAnchor(step.anchorId),
         step.anchorId,
         'tour-step',
       )
-        .then((result) => {
+        .then(async (result) => {
           if (!tourActiveRef.current) {
             return;
           }
 
-          setAiReply(result.answer);
           setRobotCue({
             ...normalizeControls(result.controls || step.controls),
             stamp: Date.now(),
           });
+          await streamReply(result.answer);
         })
         .catch(() => {
           if (!tourActiveRef.current) {
             return;
           }
 
+          stopReplyAnimation();
           setRobotCue({
             ...step.controls,
             stamp: Date.now(),
@@ -430,13 +614,16 @@ function AssistantRobot() {
     extendFreeze(30000);
     setIsLoading(true);
     isLoadingRef.current = true;
-    setAiReply('Planning a short guided tour...');
+    startProcessingReply('Planning a guided tour');
 
     try {
       const result = await requestAssistant(prompt, activeSection, activeAnchorRef.current, 'tour-plan', chatHistoryRef.current);
+      await streamReply(result.answer);
       runTour(result.answer, result.tourStops, result.closing, prompt);
       setQuestion('');
     } catch (error) {
+      setQuickActions([]);
+      stopReplyAnimation();
       setAiReply(`AI is temporarily unavailable: ${error.message}`);
       setRobotCue({
         expression: 'sad',
@@ -462,18 +649,15 @@ function AssistantRobot() {
 
     stopTour();
     clearFocusAnchor();
+    setQuickActions([]);
     extendFreeze(10000);
     setIsLoading(true);
     isLoadingRef.current = true;
-
-    if (!overrideMessage) {
-      setAiReply('Thinking...');
-    }
+    startProcessingReply(overrideMessage ? 'Reviewing context' : 'Thinking');
 
     try {
       const result = await requestAssistant(content, activeSection, activeAnchor, 'chat', chatHistoryRef.current);
       const now = Date.now();
-      setAiReply(result.answer);
       setRobotCue({
         ...result.controls,
         stamp: now,
@@ -488,29 +672,34 @@ function AssistantRobot() {
       ]);
 
       if (result.targetAnchor) {
-        setFocusAnchor(result.targetAnchor, 14000);
+        setFocusAnchor(result.targetAnchor, 5000);
         const target = document.getElementById(result.targetAnchor);
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       } else if (result.targetSection) {
-        setFocusAnchor(result.targetSection, 12000);
+        setFocusAnchor(result.targetSection, 5000);
         const target = document.getElementById(result.targetSection);
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }
 
+      setQuickActions([]);
+
       if (result.action) {
-        window.setTimeout(() => {
-          executeAssistantAction(result.action);
-        }, 240);
+        await streamReply(result.answer);
+        executeAssistantAction(result.action);
+      } else {
+        await streamReply(result.answer);
       }
 
       if (!overrideMessage) {
         setQuestion('');
       }
     } catch (error) {
+      setQuickActions([]);
+      stopReplyAnimation();
       setAiReply(`AI is temporarily unavailable: ${error.message}`);
       setRobotCue({
         expression: 'sad',
@@ -525,14 +714,14 @@ function AssistantRobot() {
   };
 
   useEffect(() => {
-    const center = getCenterWaypoint();
-    const initialX = center.x;
-    const initialY = center.y;
+    const initial = getSectionLoiterStart(activeAnchorRef.current);
+    const initialX = initial.x;
+    const initialY = initial.y;
     currentRef.current = {
       x: initialX,
       y: initialY,
     };
-    targetRef.current = getRandomWaypoint();
+    targetRef.current = getSectionWaypoint(activeAnchorRef.current, currentRef.current);
     roamCooldownUntilRef.current = performance.now() + 4000;
 
     const detectSection = () => {
@@ -601,8 +790,6 @@ function AssistantRobot() {
         return;
       }
 
-      stopTour();
-      clearFocusAnchor();
       const rect = bot.getBoundingClientRect();
       dragRef.current.active = true;
       dragRef.current.pointerId = event.pointerId;
@@ -652,11 +839,11 @@ function AssistantRobot() {
               const distance = Math.hypot(dx, dy);
 
               if (distance < 10) {
-                targetRef.current = getRandomWaypoint();
-                roamCooldownUntilRef.current = now + 4200 + Math.random() * 3200;
+                targetRef.current = getSectionWaypoint(activeAnchorRef.current, currentRef.current);
+                roamCooldownUntilRef.current = now + 5200 + Math.random() * 4200;
               } else {
-                currentRef.current.x += dx * 0.0075;
-                currentRef.current.y += dy * 0.009;
+                currentRef.current.x += dx * 0.0032;
+                currentRef.current.y += dy * 0.0038;
               }
             }
           }
@@ -749,6 +936,12 @@ function AssistantRobot() {
       if (tourTimerRef.current) {
         window.clearTimeout(tourTimerRef.current);
       }
+
+      if (proactiveTimerRef.current) {
+        window.clearTimeout(proactiveTimerRef.current);
+      }
+
+      stopReplyAnimation();
     };
   }, []);
 
@@ -770,32 +963,53 @@ function AssistantRobot() {
       return;
     }
 
-    if (proactiveBusyRef.current) {
-      return;
-    }
+    cancelPendingProactive();
+    const requestId = proactiveRequestIdRef.current;
+    const requestedAnchor = activeAnchor;
+    const requestedSection = activeSection;
 
-    proactiveBusyRef.current = true;
+    proactiveTimerRef.current = window.setTimeout(() => {
+      startProcessingReply('Reviewing this section');
 
-    requestAssistant(
-      `User is now viewing anchor ${activeAnchor} in section ${activeSection}. Give one short proactive line.`,
-      activeSection,
-      activeAnchor,
-      'proactive',
-    )
-      .then((result) => {
-        setAiReply(result.answer);
-        setRobotCue({
-          ...result.controls,
-          stamp: Date.now(),
+      requestAssistant(
+        `User is now viewing anchor ${requestedAnchor} in section ${requestedSection}. Give one short proactive line.`,
+        requestedSection,
+        requestedAnchor,
+        'proactive',
+      )
+        .then(async (result) => {
+          if (
+            proactiveRequestIdRef.current !== requestId ||
+            activeAnchorRef.current !== requestedAnchor ||
+            tourActiveRef.current
+          ) {
+            return;
+          }
+
+          setRobotCue({
+            ...result.controls,
+            stamp: Date.now(),
+          });
+          await streamReply(result.answer);
+
+          if (proactiveRequestIdRef.current !== requestId || activeAnchorRef.current !== requestedAnchor) {
+            return;
+          }
+
+          lastProactiveSectionRef.current = requestedAnchor;
+          lastProactiveAtRef.current = Date.now();
+        })
+        .catch(() => {
+          if (proactiveRequestIdRef.current === requestId) {
+            stopReplyAnimation();
+          }
+        })
+        .finally(() => {
+          if (proactiveRequestIdRef.current === requestId) {
+            proactiveTimerRef.current = 0;
+          }
         });
-        lastProactiveSectionRef.current = activeAnchor;
-        lastProactiveAtRef.current = Date.now();
-      })
-      .catch(() => {
-      })
-      .finally(() => {
-        proactiveBusyRef.current = false;
-      });
+    }, 260);
   }, [activeSection, activeAnchor]);
 
   const onEnterAsk = (event) => {
@@ -810,25 +1024,35 @@ function AssistantRobot() {
       <div className="assistant-bubble">
         <div className="assistant-ai-panel">
           <p className="assistant-ai-title">Khang AI Assistant</p>
-          <p className="assistant-ai-reply">{aiReply}</p>
+          <p className={`assistant-ai-reply ${replyPhase !== 'idle' ? `is-${replyPhase}` : ''}`}>{aiReply}</p>
           <textarea
             className="assistant-ai-input"
             placeholder="Ask about profile, skills, projects..."
             value={question}
             onChange={(event) => {
-              stopTour();
-              clearFocusAnchor();
               setQuestion(event.target.value);
               extendFreeze(10000);
             }}
             onFocus={() => {
-              stopTour();
-              clearFocusAnchor();
               extendFreeze(10000);
             }}
             onKeyDown={onEnterAsk}
             rows={2}
           />
+          {isTourRunning && !!quickActions.length && (
+            <div className="assistant-ai-actions">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  className="assistant-ai-btn assistant-ai-btn-secondary"
+                  onClick={() => executeAssistantAction(action)}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
           <button type="button" className="assistant-ai-btn" onClick={() => askAI()} disabled={isLoading}>
             {isLoading ? 'Asking...' : 'Ask AI'}
           </button>
@@ -839,6 +1063,7 @@ function AssistantRobot() {
               if (isTourRunning) {
                 stopTour();
                 clearFocusAnchor();
+                setQuickActions([]);
                 return;
               }
 
