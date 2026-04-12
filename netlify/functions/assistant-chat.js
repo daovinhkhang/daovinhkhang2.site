@@ -286,43 +286,40 @@ const ANCHOR_IDS = ANCHOR_GUIDE.map((item) => item.id);
 const ANCHOR_TO_SECTION = Object.fromEntries(ANCHOR_GUIDE.map((item) => [item.id, item.section]));
 const BROAD_ANCHORS = new Set(['home', 'profile', 'experience', 'whisper-flow', 'projects', 'skills', 'education', 'summary', 'contact']);
 const ROBOT_EXPRESSIONS = ['idle', 'happy', 'sad', 'surprised'];
-const DEFAULT_TOUR_STOPS = [
+const DEFAULT_TOUR_PLAN = {
+  intro: 'Let me walk you through the portfolio in a simple way.',
+  closing: 'That is the guided view. Ask me about any part and I can go deeper.',
+  stops: [
   {
     anchorId: 'home',
-    text: 'This is the entry point: identity, role, and the system-builder tone of the portfolio.',
     controls: { expression: 'happy', followCursor: true },
   },
   {
     anchorId: 'profile',
-    text: 'Here is the core direction: production AI systems, backend architecture, and multi-agent delivery.',
     controls: { expression: 'idle', followCursor: true },
   },
   {
     anchorId: 'exp-btaskee',
-    text: 'This experience highlights Tasker V2 to V4, LangGraph runtime design, and measurable retrieval gains.',
     controls: { expression: 'happy', followCursor: true },
   },
   {
     anchorId: 'exp-erax',
-    text: 'This section covers the EraX speech and automation work, including Odoo workflows and Vietnamese ASR.',
     controls: { expression: 'surprised', followCursor: true },
   },
   {
     anchorId: 'whisper-benchmark',
-    text: 'This benchmark block shows the strongest speech metric evidence with CER and WER comparisons.',
     controls: { expression: 'surprised', followCursor: true },
   },
   {
     anchorId: 'proj-stock',
-    text: 'The project area expands into applied AI work, including the stock forecasting model and its reported MAPE.',
     controls: { expression: 'idle', followCursor: true },
   },
   {
     anchorId: 'skill-backend',
-    text: 'These capability blocks show the stack behind the work: Python, FastAPI, Redis, MongoDB, and platform tooling.',
     controls: { expression: 'happy', followCursor: true },
   },
-];
+  ],
+};
 
 const SITE_MAP_TEXT = ANCHOR_GUIDE.map(
   (item) =>
@@ -366,6 +363,7 @@ Rules:
       "expression": "idle|happy|sad|surprised",
       "followCursor": true|false
     },
+    "closing": "optional short text",
     "action": {
       "type": "open-link|open-gmail|null",
       "label": "short action label",
@@ -374,7 +372,6 @@ Rules:
     "tourStops": [
       {
         "anchorId": "<anchor-id>",
-        "text": "short tour line",
         "controls": {
           "expression": "idle|happy|sad|surprised",
           "followCursor": true|false
@@ -388,10 +385,17 @@ Rules:
 - If mode=tour-plan:
   - You are the guide and can choose the flow yourself.
   - Give a soft opening line in "answer".
-  - Return 5 to 7 tourStops.
+  - Give a soft closing line in "closing".
+  - Return 4 to 8 tourStops.
   - Each stop must use a deep anchor when possible, not only broad sections.
-  - Keep each stop text short, warm, and non-hardcore.
+  - Do not script the tour text inside tourStops. Only choose the route and controls for each stop.
   - Set targetAnchor and targetSection to null.
+- If mode=tour-step:
+  - currentAnchor is the stop being shown right now.
+  - "answer" must be one short, natural, non-hardcore guided line about that exact stop.
+  - Set targetAnchor and targetSection to null.
+  - Do not return action.
+  - Do not return tourStops.
 - Use action only when the user clearly wants to open LinkedIn or start an email.
 - For LinkedIn, use the exact portfolio LinkedIn URL.
 - For email or Gmail requests, use Gmail compose with the portfolio email prefilled.
@@ -555,29 +559,33 @@ function resolveActionFromText(...texts) {
   return null;
 }
 
-function normalizeTourStops(stops) {
-  if (!Array.isArray(stops)) {
-    return DEFAULT_TOUR_STOPS;
+function normalizeTourPlan(payload) {
+  const normalizedStops = Array.isArray(payload?.tourStops)
+    ? payload.tourStops
+        .map((stop) => {
+          const anchorId = normalizeAnchor(stop?.anchorId);
+          if (!anchorId) {
+            return null;
+          }
+
+          return {
+            anchorId,
+            controls: normalizeRobotControls(stop?.controls),
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 8)
+    : [];
+
+  if (normalizedStops.length < 3) {
+    return DEFAULT_TOUR_PLAN;
   }
 
-  const normalized = stops
-    .map((stop) => {
-      const anchorId = normalizeAnchor(stop?.anchorId);
-      const text = `${stop?.text || ''}`.trim();
-      if (!anchorId || !text) {
-        return null;
-      }
-
-      return {
-        anchorId,
-        text,
-        controls: normalizeRobotControls(stop?.controls),
-      };
-    })
-    .filter(Boolean)
-    .slice(0, 7);
-
-  return normalized.length >= 3 ? normalized : DEFAULT_TOUR_STOPS;
+  return {
+    intro: `${payload?.answer || ''}`.trim() || DEFAULT_TOUR_PLAN.intro,
+    closing: `${payload?.closing || ''}`.trim() || DEFAULT_TOUR_PLAN.closing,
+    stops: normalizedStops,
+  };
 }
 
 export const handler = async (event) => {
@@ -681,7 +689,7 @@ export const handler = async (event) => {
     const aiSection = normalizeSection(parsed?.targetSection);
     const controls = normalizeRobotControls(parsed?.controls);
     const aiAction = normalizeAction(parsed?.action);
-    const tourStops = mode === 'tour-plan' ? normalizeTourStops(parsed?.tourStops) : [];
+    const tourPlan = mode === 'tour-plan' ? normalizeTourPlan(parsed) : null;
     const keywordAnchor = resolveAnchorFromText(userMessage, answer);
     const keywordAction = resolveActionFromText(userMessage, answer);
 
@@ -703,8 +711,9 @@ export const handler = async (event) => {
         targetAnchor: normalizeAnchor(targetAnchor),
         targetSection,
         controls,
+        closing: tourPlan?.closing || null,
         action,
-        tourStops,
+        tourStops: tourPlan?.stops || [],
       }),
     };
   } catch (error) {

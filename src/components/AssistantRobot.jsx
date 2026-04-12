@@ -260,15 +260,15 @@ function AssistantRobot() {
       targetAnchor: data?.targetAnchor || null,
       targetSection: data?.targetSection || null,
       controls: normalizeControls(data?.controls),
+      closing: `${data?.closing || ''}`.trim(),
       action: normalizeAction(data?.action),
       tourStops: Array.isArray(data?.tourStops)
         ? data.tourStops
             .map((stop) => ({
               anchorId: typeof stop?.anchorId === 'string' ? stop.anchorId : null,
-              text: `${stop?.text || ''}`.trim(),
               controls: normalizeControls(stop?.controls),
             }))
-            .filter((stop) => stop.anchorId && stop.text)
+            .filter((stop) => stop.anchorId)
         : [],
     };
   };
@@ -337,7 +337,7 @@ function AssistantRobot() {
     };
   };
 
-  const runTour = (intro, stops) => {
+  const runTour = (intro, stops, closing, tourPrompt) => {
     if (!stops.length) {
       setAiReply(intro);
       return;
@@ -359,7 +359,7 @@ function AssistantRobot() {
       }
 
       if (index >= stops.length) {
-        setAiReply('That is the guided view. Ask me about any part and I can go deeper.');
+        setAiReply(closing || 'That is the guided view. Ask me about any part and I can go deeper.');
         setRobotCue({
           expression: 'idle',
           followCursor: true,
@@ -377,15 +377,42 @@ function AssistantRobot() {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      setAiReply(step.text);
-      setRobotCue({
-        ...step.controls,
-        stamp: Date.now(),
-      });
+      requestAssistant(
+        `Guide the visitor through this stop naturally. Tour request: ${tourPrompt}`,
+        sectionFromAnchor(step.anchorId),
+        step.anchorId,
+        'tour-step',
+      )
+        .then((result) => {
+          if (!tourActiveRef.current) {
+            return;
+          }
 
-      tourTimerRef.current = window.setTimeout(() => {
-        playStep(index + 1);
-      }, index === 0 ? 5600 : 6200);
+          setAiReply(result.answer);
+          setRobotCue({
+            ...normalizeControls(result.controls || step.controls),
+            stamp: Date.now(),
+          });
+        })
+        .catch(() => {
+          if (!tourActiveRef.current) {
+            return;
+          }
+
+          setRobotCue({
+            ...step.controls,
+            stamp: Date.now(),
+          });
+        })
+        .finally(() => {
+          if (!tourActiveRef.current) {
+            return;
+          }
+
+          tourTimerRef.current = window.setTimeout(() => {
+            playStep(index + 1);
+          }, index === 0 ? 5600 : 6200);
+        });
     };
 
     tourTimerRef.current = window.setTimeout(() => {
@@ -407,7 +434,7 @@ function AssistantRobot() {
 
     try {
       const result = await requestAssistant(prompt, activeSection, activeAnchorRef.current, 'tour-plan', chatHistoryRef.current);
-      runTour(result.answer, result.tourStops);
+      runTour(result.answer, result.tourStops, result.closing, prompt);
       setQuestion('');
     } catch (error) {
       setAiReply(`AI is temporarily unavailable: ${error.message}`);
