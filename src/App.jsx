@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import ThreeBackdrop from './components/ThreeBackdrop';
 import WhisperPipeline3D from './components/WhisperPipeline3D';
+import AssistantRobot from './components/AssistantRobot';
 
 const profilePoints = [
   'Passionate about unlocking the full potential of AI and leveraging it to deliver innovative solutions that drive meaningful results.',
@@ -172,7 +173,7 @@ function App() {
       </aside>
 
       <main>
-        <section id="home" className="hero section-base">
+        <section id="home" data-assist-anchor className="hero section-base">
           <ThreeBackdrop />
           <div className="hero-content">
             <p className="eyebrow">ARCHITECT_IDENTITY</p>
@@ -198,7 +199,7 @@ function App() {
           </div>
         </section>
 
-        <section id="profile" className="section-muted">
+        <section id="profile" data-assist-anchor className="section-muted">
           <div className="section-inner">
             <h2>Profile</h2>
             <ul className="slash-list">
@@ -209,12 +210,25 @@ function App() {
           </div>
         </section>
 
-        <section id="experience" className="section-base">
+        <section id="experience" data-assist-anchor className="section-base">
           <div className="section-inner">
             <h2>Professional_Trace</h2>
             <div className="timeline">
               {experiences.map((item) => (
-                <article key={item.company} className="timeline-item">
+                <article
+                  key={item.company}
+                  id={
+                    item.company.includes('bTaskee')
+                      ? 'exp-btaskee'
+                      : item.company.includes('EraX')
+                        ? 'exp-erax'
+                        : item.company.includes('FPT IS')
+                          ? 'exp-fptis'
+                          : 'exp-fptgreenwich'
+                  }
+                  data-assist-anchor
+                  className="timeline-item"
+                >
                   <p className="timeline-time">{item.time}</p>
                   <div>
                     <h3>{item.company}</h3>
@@ -251,19 +265,38 @@ function App() {
           </div>
         </section>
 
-        <section id="whisper-flow" className="section-lowest">
+        <section id="whisper-flow" data-assist-anchor className="section-lowest">
           <div className="section-inner">
             <h2>EraX_Whisper_Runtime</h2>
             <WhisperPipeline3D />
           </div>
         </section>
 
-        <section id="projects" className="section-muted">
+        <section id="projects" data-assist-anchor className="section-muted">
           <div className="section-inner">
             <h2>Engineered_Artifacts</h2>
             <div className="projects-grid wide">
               {projects.map((project) => (
-                <article key={project.title} className="project-card">
+                <article
+                  key={project.title}
+                  id={
+                    project.title.includes('Tasker')
+                      ? 'proj-tasker'
+                      : project.title.includes('Speech-to-Text')
+                        ? 'proj-stt'
+                        : project.title.includes('Odoo')
+                          ? 'proj-odoo'
+                          : project.title.includes('Mobile')
+                            ? 'proj-mobile'
+                            : project.title.includes('Stock')
+                              ? 'proj-stock'
+                              : project.title.includes('Sentiment')
+                                ? 'proj-sentiment'
+                                : 'proj-publication'
+                  }
+                  data-assist-anchor
+                  className="project-card"
+                >
                   <h3>{project.title}</h3>
                   {!!project.period && <p className="timeline-time">{project.period}</p>}
                   <ul className="slash-list compact">
@@ -284,12 +317,27 @@ function App() {
           </div>
         </section>
 
-        <section id="skills" className="section-lowest">
+        <section id="skills" data-assist-anchor className="section-lowest">
           <div className="section-inner">
             <h2>Core_Capabilities</h2>
             <div className="skills-grid five-col">
               {skillGroups.map((group) => (
-                <article key={group.title} className="skill-group">
+                <article
+                  key={group.title}
+                  id={
+                    group.title.includes('AI Systems')
+                      ? 'skill-ai'
+                      : group.title.includes('Backend')
+                        ? 'skill-backend'
+                        : group.title.includes('ML')
+                          ? 'skill-ml'
+                          : group.title.includes('Data')
+                            ? 'skill-data'
+                            : 'skill-additional'
+                  }
+                  data-assist-anchor
+                  className="skill-group"
+                >
                   <h4>{group.title}</h4>
                   <ul>
                     {group.items.map((item) => (
@@ -304,7 +352,7 @@ function App() {
 
         <section className="section-base">
           <div className="section-inner credentials-grid">
-            <article className="credential-card">
+            <article id="education" data-assist-anchor className="credential-card">
               <h2>Education</h2>
               <p className="timeline-role">Greenwich University</p>
               <p>BSc (Hons) in Computing, 2020 - 2024</p>
@@ -314,7 +362,7 @@ function App() {
                 <li>Best Final Project (Spring 2024)</li>
               </ul>
             </article>
-            <article className="credential-card">
+            <article id="summary" data-assist-anchor className="credential-card">
               <h2>Summary</h2>
               <ul className="slash-list compact">
                 {summaryPoints.map((point) => (
@@ -326,7 +374,7 @@ function App() {
         </section>
       </main>
 
-      <footer id="contact" className="section-lowest footer">
+      <footer id="contact" data-assist-anchor className="section-lowest footer">
         <div className="section-inner footer-inner">
           <div>
             <h2>LET&apos;S_BUILD</h2>
@@ -359,6 +407,8 @@ function App() {
         <a href="#projects">Projects</a>
         <a href="#contact">Contact</a>
       </nav>
+
+      <AssistantRobot />
     </div>
   );
 }

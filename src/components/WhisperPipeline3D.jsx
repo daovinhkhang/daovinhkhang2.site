@@ -411,7 +411,7 @@ function WhisperPipeline3D() {
         <p>Audio-energy tunnel visualization mapped to your finetune stages. Hover each gate to inspect code snippets.</p>
       </div>
 
-      <div className="whisper-3d-layout">
+      <div id="whisper-flow-3d" data-assist-anchor className="whisper-3d-layout">
         <div className="whisper-3d-canvas-wrap">
           <div className="whisper-3d-canvas" ref={mountRef} />
           <p className="whisper-hint">Hover tunnel gates to switch snippets. On mobile, tap stage chips.</p>
@@ -435,7 +435,7 @@ function WhisperPipeline3D() {
         <code>tensorboard --logdir=models/whisper-medium-finetune/runs --host=0.0.0.0 --port=6006</code>
       </div>
 
-      <section className="whisper-metrics" aria-label="EraX Whisper Metrics">
+      <section id="whisper-metrics" data-assist-anchor className="whisper-metrics" aria-label="EraX Whisper Metrics">
         <div className="whisper-metrics-grid">
           <article className="metric-card">
             <p className="code-label">TRAINING SETUP</p>
@@ -455,7 +455,7 @@ function WhisperPipeline3D() {
           </article>
         </div>
 
-        <div className="benchmark-table-wrap">
+        <div id="whisper-benchmark" data-assist-anchor className="benchmark-table-wrap">
           <p className="code-label">BENCHMARK TABLE (LOWER IS BETTER)</p>
           <table className="benchmark-table">
             <thead>
