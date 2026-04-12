@@ -329,6 +329,19 @@ const SITE_MAP_TEXT = ANCHOR_GUIDE.map(
     `- ${item.id} | section=${item.section} | title=${item.title} | summary=${item.summary} | keywords=${item.keywords.join(', ')}`,
 ).join('\n');
 
+const CONTACT_ACTIONS = {
+  linkedin: {
+    type: 'open-link',
+    label: 'Open LinkedIn',
+    url: 'https://www.linkedin.com/in/dao-vinh-khang-32748023a/',
+  },
+  gmail: {
+    type: 'open-gmail',
+    label: 'Open Gmail Compose',
+    url: 'https://mail.google.com/mail/?view=cm&fs=1&to=daovinhkhang0834@gmail.com',
+  },
+};
+
 const PROFILE_CONTEXT = `
 You are Khang AI Assistant for Dao Vinh Khang portfolio.
 
@@ -353,6 +366,11 @@ Rules:
       "expression": "idle|happy|sad|surprised",
       "followCursor": true|false
     },
+    "action": {
+      "type": "open-link|open-gmail|null",
+      "label": "short action label",
+      "url": "https://..."
+    },
     "tourStops": [
       {
         "anchorId": "<anchor-id>",
@@ -374,6 +392,9 @@ Rules:
   - Each stop must use a deep anchor when possible, not only broad sections.
   - Keep each stop text short, warm, and non-hardcore.
   - Set targetAnchor and targetSection to null.
+- Use action only when the user clearly wants to open LinkedIn or start an email.
+- For LinkedIn, use the exact portfolio LinkedIn URL.
+- For email or Gmail requests, use Gmail compose with the portfolio email prefilled.
 - You are controlling a Rive catbot. Choose controls on every response.
 - Use expression=happy for positive/helpful replies, surprised for discovery/attention, sad for warnings/errors, idle for neutral.
 - followCursor should usually be true for friendly/engaged moments and false for more serious error states.
@@ -495,6 +516,45 @@ function normalizeRobotControls(controls) {
   };
 }
 
+function normalizeAction(action) {
+  if (!action || typeof action !== 'object') {
+    return null;
+  }
+
+  const type = action.type === 'open-link' || action.type === 'open-gmail' ? action.type : null;
+  const url = typeof action.url === 'string' ? action.url.trim() : '';
+  if (!type || !url) {
+    return null;
+  }
+
+  return {
+    type,
+    label: `${action.label || ''}`.trim() || (type === 'open-gmail' ? 'Open Gmail Compose' : 'Open Link'),
+    url,
+  };
+}
+
+function resolveActionFromText(...texts) {
+  const haystack = normalizeText(texts.filter(Boolean).join(' '));
+  if (!haystack) {
+    return null;
+  }
+
+  if (
+    /(linkedin|linkedln|linked in|lien he linkedin|contact linkedin|open linkedin|mo linkedin)/.test(haystack)
+  ) {
+    return CONTACT_ACTIONS.linkedin;
+  }
+
+  if (
+    /(gmail|email|e mail|mail|send mail|send email|contact email|lien he gmail|lien he email|mo gmail)/.test(haystack)
+  ) {
+    return CONTACT_ACTIONS.gmail;
+  }
+
+  return null;
+}
+
 function normalizeTourStops(stops) {
   if (!Array.isArray(stops)) {
     return DEFAULT_TOUR_STOPS;
@@ -520,7 +580,7 @@ function normalizeTourStops(stops) {
   return normalized.length >= 3 ? normalized : DEFAULT_TOUR_STOPS;
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -562,29 +622,47 @@ exports.handler = async (event) => {
           }))
         : [];
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.25,
-        enable_thinking: false,
-        messages: [
-          {
-            role: 'system',
-            content: PROFILE_CONTEXT,
-          },
-          ...conversationHistory,
-          {
-            role: 'user',
-            content: `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
-          },
-        ],
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
+
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          temperature: 0.25,
+          enable_thinking: false,
+          messages: [
+            {
+              role: 'system',
+              content: PROFILE_CONTEXT,
+            },
+            ...conversationHistory,
+            {
+              role: 'user',
+              content: `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
+            },
+          ],
+        }),
+      });
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        return {
+          statusCode: 504,
+          body: JSON.stringify({ error: 'Assistant upstream timeout' }),
+        };
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -602,8 +680,10 @@ exports.handler = async (event) => {
     const aiAnchor = normalizeAnchor(parsed?.targetAnchor);
     const aiSection = normalizeSection(parsed?.targetSection);
     const controls = normalizeRobotControls(parsed?.controls);
+    const aiAction = normalizeAction(parsed?.action);
     const tourStops = mode === 'tour-plan' ? normalizeTourStops(parsed?.tourStops) : [];
     const keywordAnchor = resolveAnchorFromText(userMessage, answer);
+    const keywordAction = resolveActionFromText(userMessage, answer);
 
     let targetAnchor = aiAnchor;
     if (!targetAnchor || BROAD_ANCHORS.has(targetAnchor)) {
@@ -611,6 +691,7 @@ exports.handler = async (event) => {
     }
 
     const targetSection = normalizeSection(aiSection || ANCHOR_TO_SECTION[targetAnchor] || null);
+    const action = keywordAction || aiAction;
 
     return {
       statusCode: 200,
@@ -622,6 +703,7 @@ exports.handler = async (event) => {
         targetAnchor: normalizeAnchor(targetAnchor),
         targetSection,
         controls,
+        action,
         tourStops,
       }),
     };

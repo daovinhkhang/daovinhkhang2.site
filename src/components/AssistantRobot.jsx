@@ -34,6 +34,23 @@ function getRandomWaypoint() {
   };
 }
 
+function getAssistantSize() {
+  const isMobile = window.innerWidth <= 819;
+  return {
+    width: isMobile ? 360 : 450,
+    height: isMobile ? 150 : 180,
+  };
+}
+
+function getCenterWaypoint() {
+  const size = getAssistantSize();
+  const bounds = getViewportBounds();
+  return {
+    x: clamp(window.innerWidth * 0.5 - size.width * 0.5, bounds.minX, bounds.maxX),
+    y: clamp(window.innerHeight * 0.5 - size.height * 0.5, bounds.minY, bounds.maxY),
+  };
+}
+
 function trimHistory(history) {
   return history.slice(-5);
 }
@@ -49,6 +66,24 @@ function normalizeControls(controls) {
   return {
     expression,
     followCursor: controls?.followCursor ?? Boolean(controls?.accessory),
+  };
+}
+
+function normalizeAction(action) {
+  if (!action || typeof action !== 'object') {
+    return null;
+  }
+
+  const type = action.type === 'open-link' || action.type === 'open-gmail' ? action.type : null;
+  const url = typeof action.url === 'string' ? action.url.trim() : '';
+  if (!type || !url) {
+    return null;
+  }
+
+  return {
+    type,
+    label: `${action.label || ''}`.trim() || (type === 'open-gmail' ? 'Open Gmail Compose' : 'Open Link'),
+    url,
   };
 }
 
@@ -78,6 +113,13 @@ function AssistantRobot() {
   const proactiveMuteUntilRef = useRef(0);
   const tourTimerRef = useRef(0);
   const tourActiveRef = useRef(false);
+  const focusAnchorRef = useRef(null);
+  const focusAnchorUntilRef = useRef(0);
+  const actionFlightRef = useRef({
+    active: false,
+    startedAt: 0,
+    hiddenAtCenter: false,
+  });
 
   const currentRef = useRef({ x: 0, y: 0 });
   const targetRef = useRef({ x: 0, y: 0 });
@@ -153,12 +195,26 @@ function AssistantRobot() {
       history,
     });
 
-    const callAssistant = (url) =>
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      });
+    const callAssistant = async (url) => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 18000);
+
+      try {
+        return await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          throw new Error(`Assistant request timed out at ${url}`);
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
 
     const localFallback =
       window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -169,10 +225,16 @@ function AssistantRobot() {
 
     let response = null;
     for (const url of candidateUrls) {
-      const res = await callAssistant(url);
-      if (res.status !== 404) {
-        response = res;
-        break;
+      try {
+        const res = await callAssistant(url);
+        if (res.status !== 404) {
+          response = res;
+          break;
+        }
+      } catch (error) {
+        if (url === candidateUrls[candidateUrls.length - 1]) {
+          throw error;
+        }
       }
     }
 
@@ -198,6 +260,7 @@ function AssistantRobot() {
       targetAnchor: data?.targetAnchor || null,
       targetSection: data?.targetSection || null,
       controls: normalizeControls(data?.controls),
+      action: normalizeAction(data?.action),
       tourStops: Array.isArray(data?.tourStops)
         ? data.tourStops
             .map((stop) => ({
@@ -210,6 +273,27 @@ function AssistantRobot() {
     };
   };
 
+  const executeAssistantAction = (action) => {
+    if (!action?.url) {
+      return;
+    }
+
+    actionFlightRef.current = {
+      active: true,
+      startedAt: performance.now(),
+      hiddenAtCenter: false,
+    };
+    stopTour();
+    clearFocusAnchor();
+    extendFreeze(5000);
+    roamCooldownUntilRef.current = performance.now() + 5000;
+
+    if (action.type === 'open-link' || action.type === 'open-gmail') {
+      window.open(action.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+  };
+
   const stopTour = () => {
     tourActiveRef.current = false;
     setIsTourRunning(false);
@@ -217,6 +301,40 @@ function AssistantRobot() {
       window.clearTimeout(tourTimerRef.current);
       tourTimerRef.current = 0;
     }
+  };
+
+  const clearFocusAnchor = () => {
+    focusAnchorRef.current = null;
+    focusAnchorUntilRef.current = 0;
+  };
+
+  const setFocusAnchor = (anchorId, durationMs = 12000) => {
+    if (!anchorId) {
+      clearFocusAnchor();
+      return;
+    }
+
+    focusAnchorRef.current = anchorId;
+    focusAnchorUntilRef.current = Number.isFinite(durationMs) ? performance.now() + durationMs : Number.POSITIVE_INFINITY;
+  };
+
+  const getDockTarget = (anchorId) => {
+    const el = document.getElementById(anchorId);
+    if (!el) {
+      return null;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const bounds = getViewportBounds();
+    const bot = botRef.current;
+    const size = getAssistantSize();
+    const assistantWidth = bot?.offsetWidth || size.width;
+    const assistantHeight = bot?.offsetHeight || size.height;
+
+    return {
+      x: clamp(rect.left - assistantWidth - 18, bounds.minX, bounds.maxX),
+      y: clamp(rect.top + rect.height * 0.5 - assistantHeight * 0.42, bounds.minY, bounds.maxY),
+    };
   };
 
   const runTour = (intro, stops) => {
@@ -247,11 +365,13 @@ function AssistantRobot() {
           followCursor: true,
           stamp: Date.now(),
         });
+        clearFocusAnchor();
         stopTour();
         return;
       }
 
       const step = stops[index];
+      setFocusAnchor(step.anchorId, Number.POSITIVE_INFINITY);
       const target = document.getElementById(step.anchorId);
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -279,6 +399,7 @@ function AssistantRobot() {
     }
 
     stopTour();
+    clearFocusAnchor();
     extendFreeze(30000);
     setIsLoading(true);
     isLoadingRef.current = true;
@@ -313,6 +434,7 @@ function AssistantRobot() {
     }
 
     stopTour();
+    clearFocusAnchor();
     extendFreeze(10000);
     setIsLoading(true);
     isLoadingRef.current = true;
@@ -339,15 +461,23 @@ function AssistantRobot() {
       ]);
 
       if (result.targetAnchor) {
+        setFocusAnchor(result.targetAnchor, 14000);
         const target = document.getElementById(result.targetAnchor);
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       } else if (result.targetSection) {
+        setFocusAnchor(result.targetSection, 12000);
         const target = document.getElementById(result.targetSection);
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+      }
+
+      if (result.action) {
+        window.setTimeout(() => {
+          executeAssistantAction(result.action);
+        }, 240);
       }
 
       if (!overrideMessage) {
@@ -368,8 +498,9 @@ function AssistantRobot() {
   };
 
   useEffect(() => {
-    const initialX = Math.max(10, window.innerWidth - 280);
-    const initialY = Math.max(16, window.innerHeight * 0.45);
+    const center = getCenterWaypoint();
+    const initialX = center.x;
+    const initialY = center.y;
     currentRef.current = {
       x: initialX,
       y: initialY,
@@ -444,6 +575,7 @@ function AssistantRobot() {
       }
 
       stopTour();
+      clearFocusAnchor();
       const rect = bot.getBoundingClientRect();
       dragRef.current.active = true;
       dragRef.current.pointerId = event.pointerId;
@@ -466,21 +598,39 @@ function AssistantRobot() {
     const animate = () => {
       const bot = botRef.current;
       if (bot) {
+        let renderX = currentRef.current.x;
+        let renderY = currentRef.current.y;
+        let renderOpacity = 1;
+
         if (!dragRef.current.active) {
           const now = performance.now();
-          const isFrozen = tourActiveRef.current || now < freezeUntilRef.current || isLoadingRef.current;
+          const dockAnchor =
+            focusAnchorRef.current && (tourActiveRef.current || now < focusAnchorUntilRef.current) ? focusAnchorRef.current : null;
+          const dockTarget = dockAnchor ? getDockTarget(dockAnchor) : null;
+          const isFrozen = now < freezeUntilRef.current || isLoadingRef.current;
 
-          if (!isFrozen && now >= roamCooldownUntilRef.current) {
-            const dx = targetRef.current.x - currentRef.current.x;
-            const dy = targetRef.current.y - currentRef.current.y;
-            const distance = Math.hypot(dx, dy);
+          if (dockTarget) {
+            targetRef.current.x = dockTarget.x;
+            targetRef.current.y = dockTarget.y;
+            currentRef.current.x += (dockTarget.x - currentRef.current.x) * 0.11;
+            currentRef.current.y += (dockTarget.y - currentRef.current.y) * 0.11;
+          } else {
+            if (focusAnchorRef.current && !tourActiveRef.current && now >= focusAnchorUntilRef.current) {
+              clearFocusAnchor();
+            }
 
-            if (distance < 10) {
-              targetRef.current = getRandomWaypoint();
-              roamCooldownUntilRef.current = now + 4200 + Math.random() * 3200;
-            } else {
-              currentRef.current.x += dx * 0.0075;
-              currentRef.current.y += dy * 0.009;
+            if (!isFrozen && now >= roamCooldownUntilRef.current) {
+              const dx = targetRef.current.x - currentRef.current.x;
+              const dy = targetRef.current.y - currentRef.current.y;
+              const distance = Math.hypot(dx, dy);
+
+              if (distance < 10) {
+                targetRef.current = getRandomWaypoint();
+                roamCooldownUntilRef.current = now + 4200 + Math.random() * 3200;
+              } else {
+                currentRef.current.x += dx * 0.0075;
+                currentRef.current.y += dy * 0.009;
+              }
             }
           }
         }
@@ -490,8 +640,44 @@ function AssistantRobot() {
         currentRef.current.y = clamp(currentRef.current.y, bounds.minY, bounds.maxY);
         targetRef.current.x = clamp(targetRef.current.x, bounds.minX, bounds.maxX);
         targetRef.current.y = clamp(targetRef.current.y, bounds.minY, bounds.maxY);
+        renderX = currentRef.current.x;
+        renderY = currentRef.current.y;
 
-        bot.style.transform = `translate3d(${currentRef.current.x}px, ${currentRef.current.y}px, 0)`;
+        if (actionFlightRef.current.active) {
+          const elapsed = performance.now() - actionFlightRef.current.startedAt;
+
+          if (elapsed < 520) {
+            const progress = elapsed / 520;
+            renderY = currentRef.current.y - 180 * progress;
+            renderOpacity = 1 - progress;
+          } else if (elapsed < 2520) {
+            renderOpacity = 0;
+            if (!actionFlightRef.current.hiddenAtCenter) {
+              const center = getCenterWaypoint();
+              currentRef.current.x = center.x;
+              currentRef.current.y = center.y;
+              targetRef.current.x = center.x;
+              targetRef.current.y = center.y;
+              actionFlightRef.current.hiddenAtCenter = true;
+            }
+            renderX = currentRef.current.x;
+            renderY = currentRef.current.y;
+          } else if (elapsed < 3040) {
+            const progress = (elapsed - 2520) / 520;
+            renderX = currentRef.current.x;
+            renderY = currentRef.current.y;
+            renderOpacity = progress;
+          } else {
+            actionFlightRef.current.active = false;
+            actionFlightRef.current.hiddenAtCenter = false;
+            renderX = currentRef.current.x;
+            renderY = currentRef.current.y;
+            renderOpacity = 1;
+          }
+        }
+
+        bot.style.transform = `translate3d(${renderX}px, ${renderY}px, 0)`;
+        bot.style.opacity = `${renderOpacity}`;
       }
 
       rafRef.current = window.requestAnimationFrame(animate);
@@ -604,11 +790,13 @@ function AssistantRobot() {
             value={question}
             onChange={(event) => {
               stopTour();
+              clearFocusAnchor();
               setQuestion(event.target.value);
               extendFreeze(10000);
             }}
             onFocus={() => {
               stopTour();
+              clearFocusAnchor();
               extendFreeze(10000);
             }}
             onKeyDown={onEnterAsk}
@@ -620,7 +808,15 @@ function AssistantRobot() {
           <button
             type="button"
             className="assistant-ai-btn assistant-ai-btn-secondary"
-            onClick={() => (isTourRunning ? stopTour() : startGuideTour())}
+            onClick={() => {
+              if (isTourRunning) {
+                stopTour();
+                clearFocusAnchor();
+                return;
+              }
+
+              startGuideTour();
+            }}
             disabled={isLoading}
           >
             {isTourRunning ? 'Stop Tour' : 'Guide Me'}
