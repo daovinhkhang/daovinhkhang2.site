@@ -1,4 +1,4 @@
-const SECTION_IDS = ['home', 'profile', 'experience', 'whisper-flow', 'projects', 'skills', 'education', 'summary', 'contact'];
+const SECTION_IDS = ['home', 'profile', 'experience', 'whisper-flow', 'projects', 'tech-radar', 'skills', 'education', 'summary', 'contact'];
 
 const ANCHOR_GUIDE = [
   {
@@ -206,6 +206,25 @@ const ANCHOR_GUIDE = [
     keywords: ['publication', 'scientific publication', 'ssrn', 'stock price forecasting', 'november 17 2024', 'preprint'],
   },
   {
+    id: 'tech-radar',
+    section: 'tech-radar',
+    title: 'Tech Radar 3D skill network',
+    summary:
+      'Interactive orbital skill network with hover evidence and click-to-scroll behavior, mapping each skill to where it was used and what outcome it produced.',
+    keywords: [
+      'tech radar',
+      'radar',
+      'skill map',
+      'skill network',
+      'orbital network',
+      '3d radar',
+      'used in',
+      'outcome',
+      'hover node',
+      'signal network',
+    ],
+  },
+  {
     id: 'skill-ai',
     section: 'skills',
     title: 'AI systems and LLM skills',
@@ -284,8 +303,12 @@ const ANCHOR_GUIDE = [
 
 const ANCHOR_IDS = ANCHOR_GUIDE.map((item) => item.id);
 const ANCHOR_TO_SECTION = Object.fromEntries(ANCHOR_GUIDE.map((item) => [item.id, item.section]));
-const BROAD_ANCHORS = new Set(['home', 'profile', 'experience', 'whisper-flow', 'projects', 'skills', 'education', 'summary', 'contact']);
+const BROAD_ANCHORS = new Set(['home', 'profile', 'experience', 'whisper-flow', 'projects', 'tech-radar', 'skills', 'education', 'summary', 'contact']);
 const ROBOT_EXPRESSIONS = ['idle', 'happy', 'sad', 'surprised'];
+const RUNTIME_MODES = ['strict', 'creative'];
+const PERSONA_STATES = ['coach', 'reviewer', 'architect', 'recruiter'];
+const STYLE_STATES = ['story', 'compare', 'mini-interview', 'challenge', 'business-pitch', 'deep-dive', 'concise'];
+const GAME_STATES = ['offer', 'running', 'reveal'];
 const DEFAULT_TOUR_PLAN = {
   intro: 'Let me walk you through the portfolio in a simple way.',
   closing: 'That is the guided view. Ask me about any part and I can go deeper.',
@@ -313,6 +336,10 @@ const DEFAULT_TOUR_PLAN = {
   {
     anchorId: 'proj-stock',
     controls: { expression: 'idle', followCursor: true },
+  },
+  {
+    anchorId: 'tech-radar',
+    controls: { expression: 'surprised', followCursor: true },
   },
   {
     anchorId: 'skill-backend',
@@ -344,17 +371,17 @@ You are Khang AI Assistant for Dao Vinh Khang portfolio.
 
 Your job:
 - Answer only from the portfolio site map below.
-- Keep answers natural, concise, and easy to read.
-- When the user asks about a specific company, project, metric, skill group, education item, summary item, or Whisper benchmark, choose the deepest relevant anchor instead of a broad section.
-- Examples of precise anchors: exp-erax, exp-btaskee, proj-stock, whisper-benchmark, education, summary.
-- Use broad anchors only for broad requests like "show profile", "show projects", or "show contact".
+- Keep answers natural and useful.
+- Choose deep anchors when possible instead of broad sections.
+- Examples of deep anchors: exp-erax, exp-btaskee, proj-stock, whisper-benchmark, tech-radar, education, summary.
+- Broad anchors are only for broad requests.
 
 Portfolio site map:
 ${SITE_MAP_TEXT}
 
 Rules:
 - Output MUST be valid JSON only.
-- JSON schema:
+- JSON schema (backward-compatible):
   {
     "answer": "concise natural text",
     "targetAnchor": "<anchor-id-or-null>",
@@ -362,6 +389,35 @@ Rules:
     "controls": {
       "expression": "idle|happy|sad|surprised",
       "followCursor": true|false
+    },
+    "meta": {
+      "mode": "strict|creative",
+      "persona": "coach|reviewer|architect|recruiter",
+      "style": "story|compare|mini-interview|challenge|business-pitch|deep-dive|concise",
+      "missions": [
+        {
+          "id": "short-id",
+          "title": "short title",
+          "reason": "short why",
+          "targetAnchor": "<anchor-id-or-null>",
+          "ctaLabel": "Explore"
+        }
+      ],
+      "game": {
+        "type": "guess-strongest-stack",
+        "state": "offer|running|reveal",
+        "clues": ["...", "...", "..."],
+        "expectedAnswer": "optional final answer",
+        "revealAnchor": "<anchor-id-or-null>"
+      },
+      "actions": [
+        {
+          "type": "open-link|open-gmail",
+          "label": "short action label",
+          "url": "https://...",
+          "autoOpen": false
+        }
+      ]
     },
     "closing": "optional short text",
     "action": {
@@ -381,31 +437,33 @@ Rules:
   }
 - Valid anchors: ${ANCHOR_IDS.join(', ')}
 - Valid sections: ${SECTION_IDS.join(', ')}
-- If mode=proactive: give one short proactive explanation for the current anchor and set targetAnchor and targetSection to null.
-- If mode=proactive: give one concise proactive explanation for the current anchor, usually one sentence, and set targetAnchor and targetSection to null.
+- If mode=proactive: give one concise proactive explanation and set targetAnchor and targetSection to null.
 - If mode=tour-plan:
-  - You are the guide and can choose the flow yourself.
-  - Give a soft opening line in "answer", usually one or two short sentences.
+  - You are the guide and can choose the flow yourself based on user intent.
+  - Give a soft opening line in "answer".
   - Give a soft closing line in "closing".
   - Return 4 to 8 tourStops.
   - Each stop must use a deep anchor when possible, not only broad sections.
-  - Do not script the tour text inside tourStops. Only choose the route and controls for each stop.
+  - Do not script full tour narration in tourStops; only route + controls.
   - Set targetAnchor and targetSection to null.
 - If mode=tour-step:
   - currentAnchor is the stop being shown right now.
-  - "answer" must be a natural guided line about that exact stop, usually one or two short sentences.
+  - "answer" must describe that exact stop.
   - Set targetAnchor and targetSection to null.
   - Do not return action.
   - Do not return tourStops.
-- Use action only when the user clearly wants to open LinkedIn or start an email.
-- For LinkedIn, use the exact portfolio LinkedIn URL.
-- For email or Gmail requests, use Gmail compose with the portfolio email prefilled.
-- You are controlling a Rive catbot. Choose controls on every response.
-- Use expression=happy for positive/helpful replies, surprised for discovery/attention, sad for warnings/errors, idle for neutral.
-- followCursor should usually be true for friendly/engaged moments and false for more serious error states.
-- If the user asks for contact info, use contact.
-- If the user asks for education, GPA, honours, awards, or university, use education.
-- If the user asks for summary or strengths, use summary unless another deeper anchor is more specific.
+- In creative mode:
+  - You can vary response style and persona naturally.
+  - You may propose up to 2 missions.
+  - Mini game is optional and only if relevant.
+- For actions:
+  - Never auto-open external links.
+  - Return actions as buttons via meta.actions with autoOpen=false.
+- action is legacy compatibility. If used, keep it consistent with meta.actions.
+- If user asks for contact info, use contact.
+- If user asks for education, GPA, honours, awards, or university, use education.
+- If user asks for summary or strengths, use summary unless another deeper anchor is more specific.
+- If user asks about skill map/radar/network/evidence by node, use tech-radar.
 `;
 
 function normalizeText(value = '') {
@@ -416,6 +474,163 @@ function normalizeText(value = '') {
     .replace(/[^a-z0-9+.%\s-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function normalizeRuntimeMode(value) {
+  return RUNTIME_MODES.includes(value) ? value : null;
+}
+
+function normalizePersona(value) {
+  return PERSONA_STATES.includes(value) ? value : null;
+}
+
+function normalizeStyle(value) {
+  return STYLE_STATES.includes(value) ? value : null;
+}
+
+function normalizeContextHints(hints) {
+  if (!hints || typeof hints !== 'object') {
+    return null;
+  }
+
+  return {
+    mode: normalizeRuntimeMode(hints.mode),
+    persona: normalizePersona(hints.persona),
+    style: normalizeStyle(hints.style),
+    activeMissionIds: Array.isArray(hints.activeMissionIds)
+      ? hints.activeMissionIds.map((item) => `${item || ''}`.trim()).filter(Boolean).slice(0, 4)
+      : [],
+    dismissedMissionIds: Array.isArray(hints.dismissedMissionIds)
+      ? hints.dismissedMissionIds.map((item) => `${item || ''}`.trim()).filter(Boolean).slice(0, 8)
+      : [],
+    game:
+      hints.game && typeof hints.game === 'object'
+        ? {
+            type: `${hints.game.type || ''}`.trim(),
+            state: `${hints.game.state || ''}`.trim(),
+          }
+        : null,
+  };
+}
+
+function detectLanguageMode(message) {
+  const raw = `${message || ''}`;
+  const normalized = normalizeText(raw);
+  const hasVietnameseDiacritics = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợúùủũụứừửữựíìỉĩịýỳỷỹỵ]/i.test(raw);
+  const vnHints = /(toi|ban|minh|khong|duoc|nhe|giup|tham|quan|so sanh|ke chuyen|chi tiet|ky nang|du an)/.test(normalized);
+  const enHints = /(the|and|with|show|explain|compare|interview|challenge|review|guide)/.test(normalized);
+
+  if ((hasVietnameseDiacritics || vnHints) && enHints) {
+    return 'mixed';
+  }
+
+  if (hasVietnameseDiacritics || vnHints) {
+    return 'vi';
+  }
+
+  return 'en';
+}
+
+function pickRuntimeMode(message, mode, contextHints) {
+  if (mode === 'tour-plan' || mode === 'tour-step') {
+    return 'creative';
+  }
+
+  if (mode === 'proactive') {
+    return 'strict';
+  }
+
+  const haystack = normalizeText(message);
+  const creativeSignals = [
+    'compare',
+    'vs',
+    'interview',
+    'challenge',
+    'story',
+    'deep dive',
+    'business pitch',
+    'roleplay',
+    'mini game',
+    'guess',
+    'tour',
+    'guide',
+    'kể chuyện',
+    'so sánh',
+    'phỏng vấn',
+    'thử thách',
+    'đào sâu',
+    'chi tiết',
+    'persona',
+  ];
+  const strictSignals = ['email', 'gmail', 'phone', 'contact', 'linkedin', 'gpa', 'award', 'location', 'when'];
+
+  let creativeScore = 0;
+  let strictScore = 0;
+  creativeSignals.forEach((token) => {
+    if (haystack.includes(normalizeText(token))) {
+      creativeScore += 2;
+    }
+  });
+  strictSignals.forEach((token) => {
+    if (haystack.includes(token)) {
+      strictScore += 1.5;
+    }
+  });
+
+  if (haystack.length > 120) {
+    creativeScore += 1;
+  }
+
+  if (normalizeRuntimeMode(contextHints?.mode) === 'creative') {
+    creativeScore += 0.6;
+  }
+
+  return creativeScore > strictScore ? 'creative' : 'strict';
+}
+
+function pickPersona(message, runtimeMode, contextHints) {
+  const hintedPersona = normalizePersona(contextHints?.persona);
+  const haystack = normalizeText(message);
+  if (/(recruit|hire|mock interview|job fit|hiring|tuyen dung|phong van)/.test(haystack)) {
+    return 'recruiter';
+  }
+  if (/(review|feedback|audit|critique|nhan xet|danh gia)/.test(haystack)) {
+    return 'reviewer';
+  }
+  if (/(architecture|system design|tradeoff|runtime|kien truc|he thong)/.test(haystack)) {
+    return 'architect';
+  }
+  if (runtimeMode === 'strict') {
+    return hintedPersona || 'coach';
+  }
+  return 'coach';
+}
+
+function pickStyle(message, runtimeMode, contextHints) {
+  const hintedStyle = normalizeStyle(contextHints?.style);
+  const haystack = normalizeText(message);
+  if (/(compare|vs|so sanh)/.test(haystack)) return 'compare';
+  if (/(interview|phong van)/.test(haystack)) return 'mini-interview';
+  if (/(challenge|thu thach|game|quiz|guess)/.test(haystack)) return 'challenge';
+  if (/(pitch|business|stakeholder|cto)/.test(haystack)) return 'business-pitch';
+  if (/(deep dive|dao sau|chi tiet|in depth)/.test(haystack)) return 'deep-dive';
+  if (/(story|ke chuyen|journey)/.test(haystack)) return 'story';
+  if (runtimeMode === 'strict') return 'concise';
+  return hintedStyle || 'concise';
+}
+
+function buildOrchestration({ message, mode, contextHints }) {
+  const runtimeMode = pickRuntimeMode(message, mode, contextHints);
+  const persona = pickPersona(message, runtimeMode, contextHints);
+  const style = pickStyle(message, runtimeMode, contextHints);
+  const language = detectLanguageMode(message);
+
+  return {
+    runtimeMode,
+    persona,
+    style,
+    language,
+  };
 }
 
 function parseAssistantPayload(text) {
@@ -539,6 +754,135 @@ function normalizeAction(action) {
   };
 }
 
+function normalizeMission(mission) {
+  if (!mission || typeof mission !== 'object') {
+    return null;
+  }
+
+  const id = `${mission.id || ''}`.trim();
+  const title = `${mission.title || ''}`.trim();
+  const reason = `${mission.reason || ''}`.trim();
+  const targetAnchor = normalizeAnchor(mission.targetAnchor);
+  const ctaLabel = `${mission.ctaLabel || ''}`.trim() || 'Explore';
+  if (!id || !title) {
+    return null;
+  }
+
+  return {
+    id,
+    title,
+    reason: reason || '',
+    targetAnchor: targetAnchor || null,
+    ctaLabel,
+  };
+}
+
+function normalizeGame(game) {
+  if (!game || typeof game !== 'object') {
+    return null;
+  }
+
+  const type = `${game.type || ''}`.trim();
+  if (type !== 'guess-strongest-stack') {
+    return null;
+  }
+
+  const state = GAME_STATES.includes(game.state) ? game.state : 'offer';
+  const clues = Array.isArray(game.clues) ? game.clues.map((item) => `${item || ''}`.trim()).filter(Boolean).slice(0, 3) : [];
+  const expectedAnswer = `${game.expectedAnswer || ''}`.trim();
+  const revealAnchor = normalizeAnchor(game.revealAnchor);
+
+  return {
+    type,
+    state,
+    clues,
+    expectedAnswer: expectedAnswer || null,
+    revealAnchor: revealAnchor || null,
+  };
+}
+
+function normalizeMetaActions(actions) {
+  if (!Array.isArray(actions)) {
+    return [];
+  }
+
+  const seen = new Set();
+  return actions
+    .map((action) => normalizeAction(action))
+    .filter((action) => {
+      if (!action) {
+        return false;
+      }
+
+      const key = `${action.type}::${action.url}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .map((action) => ({
+      ...action,
+      autoOpen: false,
+    }))
+    .slice(0, 3);
+}
+
+function normalizeMeta(meta, orchestration) {
+  const mode = normalizeRuntimeMode(meta?.mode) || orchestration.runtimeMode;
+  const persona = normalizePersona(meta?.persona) || orchestration.persona;
+  const style = normalizeStyle(meta?.style) || orchestration.style;
+  const missions = Array.isArray(meta?.missions) ? meta.missions.map((mission) => normalizeMission(mission)).filter(Boolean).slice(0, 2) : [];
+  const game = normalizeGame(meta?.game);
+  const actions = normalizeMetaActions(meta?.actions);
+
+  return {
+    mode,
+    persona,
+    style,
+    missions,
+    game,
+    actions,
+  };
+}
+
+function shouldAllowGame({ runtimeMode, message, contextHints, game, mode, style }) {
+  if (!game) {
+    return false;
+  }
+
+  const normalizedMessage = normalizeText(message);
+  const gameIntent = /(game|guess|quiz|challenge|play|mini game|thu thach|doan|tro choi)/.test(normalizedMessage);
+  const wasRunning = `${contextHints?.game?.state || ''}`.trim() === 'running';
+  const wasOffered = `${contextHints?.game?.state || ''}`.trim() === 'offer';
+
+  if (wasRunning) {
+    return true;
+  }
+
+  if (mode !== 'chat') {
+    return false;
+  }
+
+  if (runtimeMode !== 'creative') {
+    return false;
+  }
+
+  if (gameIntent) {
+    return true;
+  }
+
+  if (style === 'challenge' && game.state === 'offer' && !wasOffered) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldAllowMissions({ runtimeMode, mode }) {
+  return runtimeMode === 'creative' && mode === 'chat';
+}
+
 function resolveActionFromText(...texts) {
   const haystack = normalizeText(texts.filter(Boolean).join(' '));
   if (!haystack) {
@@ -558,6 +902,29 @@ function resolveActionFromText(...texts) {
   }
 
   return null;
+}
+
+function mergeActionList(...actionLists) {
+  const seen = new Set();
+  const merged = [];
+  actionLists.flat().forEach((action) => {
+    const normalized = normalizeAction(action);
+    if (!normalized) {
+      return;
+    }
+
+    const key = `${normalized.type}::${normalized.url}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    merged.push({
+      ...normalized,
+      autoOpen: false,
+    });
+  });
+
+  return merged.slice(0, 3);
 }
 
 function normalizeTourPlan(payload) {
@@ -604,6 +971,7 @@ export const handler = async (event) => {
     const anchor = `${body.anchor || section || 'home'}`.trim();
     const mode = `${body.mode || 'chat'}`.trim();
     const history = normalizeHistory(body.history);
+    const contextHints = normalizeContextHints(body.contextHints);
 
     if (!userMessage) {
       return {
@@ -631,6 +999,18 @@ export const handler = async (event) => {
           }))
         : [];
 
+    const orchestration = buildOrchestration({
+      message: userMessage,
+      mode,
+      contextHints,
+    });
+    const orchestrationBrief = [
+      `runtimeMode=${orchestration.runtimeMode}`,
+      `persona=${orchestration.persona}`,
+      `style=${orchestration.style}`,
+      `language=${orchestration.language}`,
+    ].join('; ');
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 18000);
 
@@ -645,7 +1025,7 @@ export const handler = async (event) => {
         signal: controller.signal,
         body: JSON.stringify({
           model,
-          temperature: 0.25,
+          temperature: orchestration.runtimeMode === 'creative' ? 0.42 : 0.25,
           enable_thinking: false,
           messages: [
             {
@@ -655,7 +1035,12 @@ export const handler = async (event) => {
             ...conversationHistory,
             {
               role: 'user',
-              content: `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
+              content: [
+                `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
+                `orchestration=${orchestrationBrief}`,
+                `contextHints=${JSON.stringify(contextHints || {})}`,
+                'Language policy: if language=vi answer mostly Vietnamese; if language=en answer mostly English; if language=mixed use natural mix.',
+              ].join('\n'),
             },
           ],
         }),
@@ -690,6 +1075,7 @@ export const handler = async (event) => {
     const aiSection = normalizeSection(parsed?.targetSection);
     const controls = normalizeRobotControls(parsed?.controls);
     const aiAction = normalizeAction(parsed?.action);
+    const meta = normalizeMeta(parsed?.meta, orchestration);
     const tourPlan = mode === 'tour-plan' ? normalizeTourPlan(parsed) : null;
     const keywordAnchor = resolveAnchorFromText(userMessage, answer);
     const keywordAction = resolveActionFromText(userMessage, answer);
@@ -700,7 +1086,25 @@ export const handler = async (event) => {
     }
 
     const targetSection = normalizeSection(aiSection || ANCHOR_TO_SECTION[targetAnchor] || null);
-    const action = keywordAction || aiAction;
+    const actionList = mergeActionList(meta.actions, [keywordAction, aiAction]);
+    const action = actionList.length ? { type: actionList[0].type, label: actionList[0].label, url: actionList[0].url } : null;
+    const missions = shouldAllowMissions({ runtimeMode: orchestration.runtimeMode, mode }) ? meta.missions : [];
+    const game = shouldAllowGame({
+      runtimeMode: orchestration.runtimeMode,
+      message: userMessage,
+      contextHints,
+      game: meta.game,
+      mode,
+      style: orchestration.style,
+    })
+      ? meta.game
+      : null;
+    const responseMeta = {
+      ...meta,
+      missions,
+      game,
+      actions: actionList,
+    };
 
     return {
       statusCode: 200,
@@ -715,6 +1119,7 @@ export const handler = async (event) => {
         closing: tourPlan?.closing || null,
         action,
         tourStops: tourPlan?.stops || [],
+        meta: responseMeta,
       }),
     };
   } catch (error) {

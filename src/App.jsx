@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import ThreeBackdrop from './components/ThreeBackdrop';
 import WhisperPipeline3D from './components/WhisperPipeline3D';
+import TechRadar3D from './components/TechRadar3D';
 import AssistantRobot from './components/AssistantRobot';
 
 const profilePoints = [
@@ -160,6 +161,7 @@ function App() {
           <a href="#experience">Experience</a>
           <a href="#whisper-flow">Whisper 3D</a>
           <a href="#projects">Projects</a>
+          <a href="#tech-radar">Tech Radar</a>
           <a href="#skills">Skills</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -317,6 +319,13 @@ function App() {
           </div>
         </section>
 
+        <section id="tech-radar" data-assist-anchor className="section-base">
+          <div className="section-inner">
+            <h2>Signal_Network</h2>
+            <TechRadar3D />
+          </div>
+        </section>
+
         <section id="skills" data-assist-anchor className="section-lowest">
           <div className="section-inner">
             <h2>Core_Capabilities</h2>
@@ -405,6 +414,7 @@ function App() {
         <a href="#whisper-flow">Whisper</a>
         <a href="#experience">Exp</a>
         <a href="#projects">Projects</a>
+        <a href="#tech-radar">Radar</a>
         <a href="#contact">Contact</a>
       </nav>
 
