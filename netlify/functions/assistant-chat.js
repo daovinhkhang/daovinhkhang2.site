@@ -728,6 +728,28 @@ function normalizeHistory(history) {
     .slice(-10);
 }
 
+function compressHistoryText(text, maxLength) {
+  const compact = `${text || ''}`.replace(/\s+/g, ' ').trim();
+  if (compact.length <= maxLength) {
+    return compact;
+  }
+  return `${compact.slice(0, maxLength - 1)}…`;
+}
+
+function prepareHistoryForUpstream(history) {
+  const recentHistory = history.slice(-8);
+  const total = recentHistory.length;
+
+  return recentHistory.map((item, index) => {
+    const isRecentTurn = index >= total - 4;
+    const maxLength = isRecentTurn ? 520 : 260;
+    return {
+      role: item.role,
+      content: compressHistoryText(item.content, maxLength),
+    };
+  });
+}
+
 function normalizeRobotControls(controls) {
   const expression = ROBOT_EXPRESSIONS.includes(controls?.expression) ? controls.expression : 'idle';
   return {
@@ -993,10 +1015,7 @@ export const handler = async (event) => {
 
     const conversationHistory =
       mode === 'chat'
-        ? history.map((item) => ({
-            role: item.role,
-            content: item.content,
-          }))
+        ? prepareHistoryForUpstream(history)
         : [];
 
     const orchestration = buildOrchestration({
