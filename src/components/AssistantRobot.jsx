@@ -116,6 +116,28 @@ function trimHistory(history) {
   return history.slice(-10);
 }
 
+function stripMarkdown(text) {
+  const raw = `${text || ''}`;
+  if (!raw) {
+    return '';
+  }
+
+  return raw
+    .replace(/```[\s\S]*?```/g, (block) => block.replace(/```[a-zA-Z0-9_-]*\n?/g, '').trim())
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/>\s?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function isTourIntent(message) {
   return /(tour|guide me|show me around|walk me through|take me around|tham quan|dan toi tham quan|gioi thieu portfolio|dẫn tôi tham quan)/i.test(
     message,
@@ -713,7 +735,7 @@ function AssistantRobot() {
     }
 
     return {
-      answer: data?.answer || 'Hello from Khang AI Assistant.',
+      answer: stripMarkdown(data?.answer || 'Hello from Khang AI Assistant.'),
       targetAnchor: data?.targetAnchor || null,
       targetSection: data?.targetSection || null,
       controls: normalizeControls(data?.controls),

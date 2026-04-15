@@ -530,7 +530,6 @@ function detectLanguageMode(message) {
 
   return 'en';
 }
-
 function pickRuntimeMode(message, mode, contextHints) {
   if (mode === 'tour-plan' || mode === 'tour-step') {
     return 'creative';
@@ -633,6 +632,19 @@ function buildOrchestration({ message, mode, contextHints }) {
   };
 }
 
+function normalizePromptCacheRetention(value) {
+  return `${value || ''}`.trim() === '24h' ? '24h' : 'in_memory';
+}
+
+function normalizeReasoningEffort(value) {
+  const normalized = `${value || ''}`.trim().toLowerCase();
+  if (normalized === 'minimal') {
+    return 'low';
+  }
+  const allowed = new Set(['none', 'low', 'medium', 'high', 'xhigh']);
+  return allowed.has(normalized) ? normalized : 'low';
+}
+
 function parseAssistantPayload(text) {
   if (!text) {
     return null;
@@ -703,6 +715,44 @@ function resolveAnchorFromText(...texts) {
   });
 
   return bestScore > 0 ? bestAnchor : null;
+}
+
+function resolveAnchorFromIntent(message) {
+  const haystack = normalizeText(message);
+  if (!haystack) {
+    return null;
+  }
+
+  if (/(kinh nghiem|experience|career|work history|professional)/.test(haystack)) return 'exp-btaskee';
+  if (/(erax|gtel|odoo|speech to text|stt|asr)/.test(haystack)) return 'exp-erax';
+  if (/(whisper|benchmark|cer|wer|ctranslate2)/.test(haystack)) return 'whisper-benchmark';
+  if (/(du an|project|tasker|stock|sentiment|publication)/.test(haystack)) return 'proj-tasker';
+  if (/(ky nang|skill|stack|tech radar|radar)/.test(haystack)) return 'skill-ai';
+  if (/(hoc van|education|gpa|honours|award|university|greenwich)/.test(haystack)) return 'education';
+  if (/(lien he|contact|email|gmail|linkedin|phone|sdt|so dien thoai)/.test(haystack)) return 'contact';
+  if (/(tom tat|summary|strength)/.test(haystack)) return 'summary';
+  return null;
+}
+
+function getSectionOverview(section, language) {
+  if (section === 'experience') {
+    return language === 'en'
+      ? 'Khang has experience at bTaskee, EraX to Gtel, FPT IS, and FPT Greenwich, with strong production AI and backend delivery.'
+      : 'Khang có kinh nghiệm tại bTaskee, EraX đến Gtel, FPT IS và FPT Greenwich, tập trung mạnh vào AI production và backend.';
+  }
+  if (section === 'projects') {
+    return language === 'en'
+      ? 'Key projects include Tasker evolution, Vietnamese ASR, Odoo workflow chatbot, mobile AI models, stock prediction, and sentiment analysis.'
+      : 'Các dự án chính gồm Tasker evolution, ASR tiếng Việt, chatbot workflow Odoo, mobile AI models, stock prediction và sentiment analysis.';
+  }
+  if (section === 'contact') {
+    return language === 'en'
+      ? 'You can contact Khang via LinkedIn or Gmail in the contact section.'
+      : 'Bạn có thể liên hệ Khang qua LinkedIn hoặc Gmail ở mục contact.';
+  }
+  return language === 'en'
+    ? 'I can explain this section in detail. Ask me a specific part and I will guide you there.'
+    : 'Mình có thể giải thích chi tiết phần này. Bạn hỏi cụ thể mục nào, mình sẽ dẫn tới đúng chỗ.';
 }
 
 function normalizeSection(value) {
@@ -957,9 +1007,24 @@ function normalizeTourPlan(payload) {
 }
 
 export const handler = async (event) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
@@ -976,17 +1041,23 @@ export const handler = async (event) => {
     if (!userMessage) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'message is required' }),
       };
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const baseUrl = process.env.OPENAI_BASE_URL || 'https://qwenapi.sbs/v1';
-    const model = process.env.OPENAI_MODEL || 'qwen3.6-plus';
+    const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+    const model = process.env.OPENAI_MODEL || 'gpt-5.4-nano';
+    const promptCacheKeyBase = `${process.env.OPENAI_PROMPT_CACHE_KEY || 'daovinhkhang-assistant'}`.trim();
+    const promptCacheRetention = normalizePromptCacheRetention(process.env.OPENAI_PROMPT_CACHE_RETENTION);
+    const maxCompletionTokens = Math.max(120, Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 260));
+    const reasoningEffort = normalizeReasoningEffort(process.env.OPENAI_REASONING_EFFORT || 'low');
 
     if (!apiKey) {
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Missing OPENAI_API_KEY' }),
       };
     }
@@ -1010,9 +1081,11 @@ export const handler = async (event) => {
       `style=${orchestration.style}`,
       `language=${orchestration.language}`,
     ].join('; ');
+    const promptCacheKey = `${promptCacheKeyBase}:${mode}:${orchestration.runtimeMode}:${orchestration.language}`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    const requestTimeoutMs = Math.max(10000, Math.min(26000, Number(process.env.OPENAI_TIMEOUT_MS || 22000)));
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
     let response;
     try {
@@ -1025,8 +1098,11 @@ export const handler = async (event) => {
         signal: controller.signal,
         body: JSON.stringify({
           model,
-          temperature: orchestration.runtimeMode === 'creative' ? 0.42 : 0.25,
-          enable_thinking: false,
+          max_completion_tokens: maxCompletionTokens,
+          reasoning_effort: reasoningEffort,
+          response_format: { type: 'json_object' },
+          prompt_cache_key: promptCacheKey,
+          prompt_cache_retention: promptCacheRetention,
           messages: [
             {
               role: 'system',
@@ -1049,6 +1125,7 @@ export const handler = async (event) => {
       if (error?.name === 'AbortError') {
         return {
           statusCode: 504,
+          headers: corsHeaders,
           body: JSON.stringify({ error: 'Assistant upstream timeout' }),
         };
       }
@@ -1062,6 +1139,7 @@ export const handler = async (event) => {
       const errorText = await response.text();
       return {
         statusCode: response.status,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Upstream API error', detail: errorText.slice(0, 600) }),
       };
     }
@@ -1069,23 +1147,37 @@ export const handler = async (event) => {
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content || '';
     const parsed = parseAssistantPayload(content);
+    const usage = data?.usage || {};
+    const promptTokenDetails = usage?.prompt_tokens_details || {};
+    const cachedTokens = Number(promptTokenDetails?.cached_tokens || 0);
+    const promptTokens = Number(usage?.prompt_tokens || 0);
+    const completionTokens = Number(usage?.completion_tokens || 0);
+    const totalTokens = Number(usage?.total_tokens || 0);
 
-    const answer = `${parsed?.answer || 'Hello from Khang AI Assistant.'}`.trim();
     const aiAnchor = normalizeAnchor(parsed?.targetAnchor);
     const aiSection = normalizeSection(parsed?.targetSection);
     const controls = normalizeRobotControls(parsed?.controls);
     const aiAction = normalizeAction(parsed?.action);
     const meta = normalizeMeta(parsed?.meta, orchestration);
     const tourPlan = mode === 'tour-plan' ? normalizeTourPlan(parsed) : null;
-    const keywordAnchor = resolveAnchorFromText(userMessage, answer);
-    const keywordAction = resolveActionFromText(userMessage, answer);
+    const keywordAnchor = resolveAnchorFromText(userMessage, parsed?.answer);
+    const intentAnchor = resolveAnchorFromIntent(userMessage);
 
     let targetAnchor = aiAnchor;
     if (!targetAnchor || BROAD_ANCHORS.has(targetAnchor)) {
-      targetAnchor = keywordAnchor || targetAnchor;
+      targetAnchor = keywordAnchor || intentAnchor || targetAnchor;
+    }
+    if (!targetAnchor) {
+      targetAnchor = normalizeAnchor(anchor) || ANCHOR_GUIDE.find((item) => item.section === section)?.id || 'home';
     }
 
     const targetSection = normalizeSection(aiSection || ANCHOR_TO_SECTION[targetAnchor] || null);
+    const anchorSummary = ANCHOR_GUIDE.find((item) => item.id === targetAnchor)?.summary || '';
+    const answer =
+      `${parsed?.answer || ''}`.trim() ||
+      `${anchorSummary}`.trim() ||
+      getSectionOverview(targetSection || section, orchestration.language);
+    const keywordAction = resolveActionFromText(userMessage, answer);
     const actionList = mergeActionList(meta.actions, [keywordAction, aiAction]);
     const action = actionList.length ? { type: actionList[0].type, label: actionList[0].label, url: actionList[0].url } : null;
     const missions = shouldAllowMissions({ runtimeMode: orchestration.runtimeMode, mode }) ? meta.missions : [];
@@ -1104,11 +1196,22 @@ export const handler = async (event) => {
       missions,
       game,
       actions: actionList,
+      cache: {
+        promptCacheKey,
+        promptCacheRetention,
+        reasoningEffort,
+        cachedTokens,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        cacheHitRate: promptTokens > 0 ? Number((cachedTokens / promptTokens).toFixed(4)) : 0,
+      },
     };
 
     return {
       statusCode: 200,
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -1125,7 +1228,9 @@ export const handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Internal server error', detail: `${error}` }),
     };
   }
 };
+
