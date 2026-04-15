@@ -362,7 +362,6 @@ function AssistantRobot() {
   const proactiveMuteUntilRef = useRef(0);
   const proactiveTimerRef = useRef(0);
   const proactiveRequestIdRef = useRef(0);
-  const proactiveAbortRef = useRef(null);
   const tourTimerRef = useRef(0);
   const tourActiveRef = useRef(false);
   const focusAnchorRef = useRef(null);
@@ -581,10 +580,6 @@ function AssistantRobot() {
       window.clearTimeout(proactiveTimerRef.current);
       proactiveTimerRef.current = 0;
     }
-    if (proactiveAbortRef.current) {
-      proactiveAbortRef.current();
-      proactiveAbortRef.current = null;
-    }
   };
 
   const startProcessingReply = (baseText = 'Thinking') => {
@@ -647,8 +642,7 @@ function AssistantRobot() {
     });
   };
 
-  const requestAssistant = async (content, section, anchor, mode = 'chat', history = [], contextHints = null, options = null) => {
-    const timeoutMs = Number.isFinite(options?.timeoutMs) ? options.timeoutMs : mode === 'proactive' ? 12000 : 18000;
+  const requestAssistant = async (content, section, anchor, mode = 'chat', history = [], contextHints = null) => {
     const payload = JSON.stringify({
       message: content,
       section,
@@ -660,10 +654,7 @@ function AssistantRobot() {
 
     const callAssistant = async (url) => {
       const controller = new AbortController();
-      if (typeof options?.registerAbort === 'function') {
-        options.registerAbort(() => controller.abort());
-      }
-      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutId = window.setTimeout(() => controller.abort(), 18000);
 
       try {
         return await fetch(url, {
@@ -706,10 +697,6 @@ function AssistantRobot() {
 
     if (!response) {
       throw new Error('Assistant endpoint not found. Start with `npx netlify dev`.');
-    }
-
-    if (typeof options?.registerAbort === 'function') {
-      options.registerAbort(null);
     }
 
     const raw = await response.text();
@@ -1019,10 +1006,6 @@ function AssistantRobot() {
     }
 
     stopTour();
-    if (proactiveAbortRef.current) {
-      proactiveAbortRef.current();
-      proactiveAbortRef.current = null;
-    }
     clearFocusAnchor();
     setMissionCards([]);
     setGameState(null);
@@ -1078,10 +1061,6 @@ function AssistantRobot() {
     }
 
     stopTour();
-    if (proactiveAbortRef.current) {
-      proactiveAbortRef.current();
-      proactiveAbortRef.current = null;
-    }
     clearFocusAnchor();
     setQuickActions([]);
     setResponseActions([]);
@@ -1402,10 +1381,6 @@ function AssistantRobot() {
     }
 
     const now = Date.now();
-    if (isLoadingRef.current || question.trim()) {
-      return;
-    }
-
     if (now < proactiveMuteUntilRef.current) {
       return;
     }
@@ -1429,12 +1404,6 @@ function AssistantRobot() {
         'proactive',
         [],
         buildContextHints(),
-        {
-          timeoutMs: 10000,
-          registerAbort: (abortFn) => {
-            proactiveAbortRef.current = typeof abortFn === 'function' ? abortFn : null;
-          },
-        },
       )
         .then(async (result) => {
           if (
@@ -1464,7 +1433,6 @@ function AssistantRobot() {
 
           lastProactiveSectionRef.current = requestedAnchor;
           lastProactiveAtRef.current = Date.now();
-          proactiveMuteUntilRef.current = Date.now() + 20000;
         })
         .catch(() => {
           if (proactiveRequestIdRef.current === requestId) {
@@ -1472,13 +1440,12 @@ function AssistantRobot() {
           }
         })
         .finally(() => {
-          proactiveAbortRef.current = null;
           if (proactiveRequestIdRef.current === requestId) {
             proactiveTimerRef.current = 0;
           }
         });
-    }, 600);
-  }, [activeSection, activeAnchor, question]);
+    }, 260);
+  }, [activeSection, activeAnchor]);
 
   const handleMissionExplore = (mission) => {
     if (!mission?.targetAnchor) {
