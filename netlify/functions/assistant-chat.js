@@ -1,3 +1,5 @@
+import OpenAI from 'openai';
+
 const SECTION_IDS = ['home', 'profile', 'experience', 'whisper-flow', 'projects', 'tech-radar', 'skills', 'education', 'summary', 'contact'];
 
 const ANCHOR_GUIDE = [
@@ -1047,12 +1049,9 @@ export const handler = async (event) => {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-    const model = process.env.OPENAI_MODEL || 'gpt-5.4-nano';
-    const promptCacheKeyBase = `${process.env.OPENAI_PROMPT_CACHE_KEY || 'daovinhkhang-assistant'}`.trim();
-    const promptCacheRetention = normalizePromptCacheRetention(process.env.OPENAI_PROMPT_CACHE_RETENTION);
-    const maxCompletionTokens = Math.max(120, Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 260));
-    const reasoningEffort = normalizeReasoningEffort(process.env.OPENAI_REASONING_EFFORT || 'low');
+    const baseUrl = process.env.OPENAI_BASE_URL || 'http://159.65.130.71/v1';
+    const model = process.env.OPENAI_MODEL || 'ag/gemini-3.1-pro-low';
+    const maxTokens = Math.max(120, Number(process.env.OPENAI_MAX_TOKENS || process.env.OPENAI_MAX_COMPLETION_TOKENS || 5000));
 
     if (!apiKey) {
       return {
@@ -1081,48 +1080,48 @@ export const handler = async (event) => {
       `style=${orchestration.style}`,
       `language=${orchestration.language}`,
     ].join('; ');
-    const promptCacheKey = `${promptCacheKeyBase}:${mode}:${orchestration.runtimeMode}:${orchestration.language}`;
-
-    const controller = new AbortController();
     const requestTimeoutMs = Math.max(10000, Math.min(26000, Number(process.env.OPENAI_TIMEOUT_MS || 22000)));
-    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+    const client = new OpenAI({
+      apiKey,
+      baseURL: baseUrl,
+      timeout: requestTimeoutMs,
+    });
 
-    let response;
+    let data;
     try {
-      response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model,
-          max_completion_tokens: maxCompletionTokens,
-          reasoning_effort: reasoningEffort,
-          response_format: { type: 'json_object' },
-          prompt_cache_key: promptCacheKey,
-          prompt_cache_retention: promptCacheRetention,
-          messages: [
-            {
-              role: 'system',
-              content: PROFILE_CONTEXT,
-            },
-            ...conversationHistory,
-            {
-              role: 'user',
-              content: [
-                `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
-                `orchestration=${orchestrationBrief}`,
-                `contextHints=${JSON.stringify(contextHints || {})}`,
-                'Language policy: if language=vi answer mostly Vietnamese; if language=en answer mostly English; if language=mixed use natural mix.',
-              ].join('\n'),
-            },
-          ],
-        }),
+      data = await client.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: PROFILE_CONTEXT,
+          },
+          ...conversationHistory,
+          {
+            role: 'user',
+            content: [
+              `mode=${mode}; currentSection=${section}; currentAnchor=${anchor}; userMessage=${userMessage}`,
+              `orchestration=${orchestrationBrief}`,
+              `contextHints=${JSON.stringify(contextHints || {})}`,
+              'Language policy: if language=vi answer mostly Vietnamese; if language=en answer mostly English; if language=mixed use natural mix.',
+            ].join('\n'),
+          },
+        ],
+        max_tokens: maxTokens,
       });
     } catch (error) {
-      if (error?.name === 'AbortError') {
+      if (error?.status) {
+        return {
+          statusCode: error.status,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'Upstream API error',
+            detail: `${error.message || error}`.slice(0, 600),
+          }),
+        };
+      }
+
+      if (error?.name === 'AbortError' || /timeout/i.test(`${error?.message || ''}`)) {
         return {
           statusCode: 504,
           headers: corsHeaders,
@@ -1131,20 +1130,8 @@ export const handler = async (event) => {
       }
 
       throw error;
-    } finally {
-      clearTimeout(timeoutId);
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return {
-        statusCode: response.status,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Upstream API error', detail: errorText.slice(0, 600) }),
-      };
-    }
-
-    const data = await response.json();
     const content = data?.choices?.[0]?.message?.content || '';
     const parsed = parseAssistantPayload(content);
     const usage = data?.usage || {};
@@ -1197,9 +1184,9 @@ export const handler = async (event) => {
       game,
       actions: actionList,
       cache: {
-        promptCacheKey,
-        promptCacheRetention,
-        reasoningEffort,
+        baseUrl,
+        model,
+        maxTokens,
         cachedTokens,
         promptTokens,
         completionTokens,
