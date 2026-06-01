@@ -1049,9 +1049,9 @@ export const handler = async (event) => {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const baseUrl = process.env.OPENAI_BASE_URL || 'http://159.65.130.71/v1';
-    const model = process.env.OPENAI_MODEL || 'ag/gemini-3.1-pro-low';
-    const maxTokens = Math.max(120, Number(process.env.OPENAI_MAX_TOKENS || process.env.OPENAI_MAX_COMPLETION_TOKENS || 5000));
+    const baseUrl = 'https://api.openai.com/v1';
+    const model = 'gpt-5.4-nano';
+    const maxTokens = 5000;
 
     if (!apiKey) {
       return {
@@ -1107,7 +1107,7 @@ export const handler = async (event) => {
             ].join('\n'),
           },
         ],
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
       });
     } catch (error) {
       if (error?.status) {
