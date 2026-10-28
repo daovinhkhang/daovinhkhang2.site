@@ -34,6 +34,10 @@ Rules:
 - No markdown. Plain sentences.`;
 
 const LIMITS = { max_tokens: 700, temperature: 0.2 };
+// 'low' cuts the hidden reasoning from ~600 characters to none and roughly
+// halves latency. 'none' is worse: the model leaks its deliberation into the
+// visible answer ("The user is asking about KAMI Pro. I should...").
+const REASONING = process.env.UPSTREAM_REASONING || 'low';
 
 const reply = (statusCode, body) => ({
   statusCode,
@@ -65,6 +69,7 @@ export const handler = async (event) => {
   const body = {
     model: MODEL,
     ...LIMITS,
+    reasoning_effort: REASONING,
     stream: true,
     messages: [
       { role: 'system', content: `${SYSTEM_PROMPT}\n\nCONTEXT:\n${String(payload.context || '').slice(0, 6000)}` },

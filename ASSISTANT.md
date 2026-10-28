@@ -18,6 +18,21 @@ The provider rejects cross-origin requests, so the browser can never call it
 directly. `netlify/functions/chat.mjs` is a thin proxy that attaches the key
 server-side and folds the SSE stream back into one JSON body.
 
+## Run it locally
+
+```bash
+cp .env.example .env.local     # then paste the key into UPSTREAM_KEY
+npm run dev                    # http://localhost:5173
+```
+
+`vite.config.js` mounts `netlify/functions/chat.mjs` at `/api/chat`, so local
+development exercises the **real** handler — not a mock. On boot it prints
+either `live model enabled` or a warning that `UPSTREAM_KEY` is missing.
+
+Note that `VITE_`-prefixed variables are the only ones Vite exposes to client
+code, and `UPSTREAM_KEY` deliberately is not one of them: the plugin copies it
+into `process.env` for the server-side handler only.
+
 ## Setup
 
 Set one environment variable in Netlify → Site settings → Environment variables:
@@ -27,6 +42,7 @@ Set one environment variable in Netlify → Site settings → Environment variab
 | `UPSTREAM_KEY` | yes | — |
 | `UPSTREAM_URL` | no | `https://api-sf1-cdn.deploy.com/api/v1/chat/completions` |
 | `UPSTREAM_MODEL` | no | `zai-org/glm-5.3-flash` |
+| `UPSTREAM_REASONING` | no | `low` |
 
 Without `UPSTREAM_KEY` the function returns `501` and the widget **falls back to
 the curated knowledge base** in `src/assistant/knowledge.js` — the site never
@@ -73,5 +89,9 @@ just happened. Tapping the bar returns to the conversation.
   with the page when facts change.
 - The model occasionally answers a navigation request in words instead of
   calling a tool. It is a soft preference, not a guarantee.
-- Latency is roughly 1.2–2.5s per turn. A tool turn costs two round trips
-  because the follow-up turn asks the model to explain what it just did.
+- Latency is roughly 1.2–1.5s for a plain answer. A tool turn takes longer
+  (~5s) because it costs two round trips plus the drawer animation: one to
+  decide, one to explain after the page has moved.
+- `reasoning_effort: 'low'` is set explicitly. The default spends ~600 hidden
+  reasoning tokens per answer; `'none'` is worse, because the model then leaks
+  its deliberation into the visible reply ("The user is asking about...").

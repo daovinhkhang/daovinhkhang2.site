@@ -15,7 +15,9 @@ import { runTool } from './director';
 import { TOOLS, validateCall } from './tools';
 
 const ENDPOINT = '/api/chat';
-const HISTORY_LIMIT = 8;
+// Six turns is enough for pronouns and follow-ups while keeping the prompt
+// small; a long transcript made the model slower and more likely to drift.
+const HISTORY_LIMIT = 6;
 
 let inflight = null;
 
@@ -62,13 +64,17 @@ function recent(messages) {
  * so the caller can fall back to the local knowledge base.
  */
 export async function ask(messages, { signal } = {}) {
-  const previous = inflight;
+  // Only cancel a request that is still running. A finished one must never be
+  // aborted, or its `finally` races the call that just replaced it.
+  if (inflight && !inflight.settled) inflight.ctrl.abort();
   const ctrl = new AbortController();
-  inflight = ctrl;
-  // Cancel the earlier turn only once this one is safely registered.
-  if (previous && previous !== ctrl) previous.abort();
+  inflight = { ctrl, settled: false };
+  const current = inflight;
   const onAbort = () => ctrl.abort();
   signal?.addEventListener('abort', onAbort, { once: true });
+
+  // Client-side deadline; the function also enforces one upstream.
+  const deadline = setTimeout(() => ctrl.abort(), 20000);
 
   try {
     const res = await fetch(ENDPOINT, {
@@ -103,7 +109,9 @@ export async function ask(messages, { signal } = {}) {
   } catch {
     return null;
   } finally {
-    if (inflight === ctrl) inflight = null;
+    clearTimeout(deadline);
+    current.settled = true;
+    if (inflight === current) inflight = null;
     signal?.removeEventListener('abort', onAbort);
   }
 }
