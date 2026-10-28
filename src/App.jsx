@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const NAV = [
   { href: '#work', label: 'Work' },
@@ -1087,6 +1088,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <AssistantWidget />
     </div>
   );
 }
