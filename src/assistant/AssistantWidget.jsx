@@ -1,52 +1,46 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GREETING, QUICK_REPLIES, resolveChip, resolveReply } from './knowledge';
 
-/* Avatar: the same "K" mark used in the site header, so the assistant
-   reads as part of the brand rather than a third-party widget. */
-function Avatar({ size = 24 }) {
+function Icon({ d, size = 24, stroke = true }) {
   return (
-    <span className="as-avatar" style={{ width: size, height: size }} aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={stroke ? 'none' : 'currentColor'}
+      stroke={stroke ? 'currentColor' : 'none'}
+      strokeWidth={stroke ? 1.6 : 0}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+function Avatar() {
+  return (
+    <span className="as-avatar" aria-hidden>
       K
     </span>
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-      <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ChatIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-      <path d="M21 12a8 8 0 01-8 8H7l-4 3 1.2-4.2A8 8 0 1121 12z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SendIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-      <path d="M1.7 1.2l13 6.2a.6.6 0 010 1.1l-13 6.2a.6.6 0 01-.83-.72L2.6 8 .87 1.92a.6.6 0 01.83-.72z" />
-    </svg>
-  );
-}
-
-let messageId = 0;
+let seq = 0;
 const nextId = () => {
-  messageId += 1;
-  return `m${messageId}`;
+  seq += 1;
+  return `m${seq}`;
 };
+
+const CLOSE_MS = 500; // matches the drawer's 0.5s slide-out
 
 export default function AssistantWidget() {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [teaser, setTeaser] = useState(true);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState('');
   const [messages, setMessages] = useState(() =>
     GREETING.map((text, i) => ({
       id: nextId(),
@@ -56,25 +50,27 @@ export default function AssistantWidget() {
     })),
   );
 
-  const panelRef = useRef(null);
   const inputRef = useRef(null);
   const logRef = useRef(null);
   const toggleRef = useRef(null);
-  const timers = useRef([]);
+  const timers = useRef(new Set());
+  const restoreFocus = useRef(false);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
-    timers.current = [];
-  };
+    timers.current.clear();
+  }, []);
 
-  useEffect(() => clearTimers, []);
+  useEffect(() => clearTimers, [clearTimers]);
 
-  /* Only ever one timer chain at a time; clears on unmount. */
-  const later = (fn, ms) => {
-    const t = setTimeout(fn, ms);
-    timers.current.push(t);
+  const later = useCallback((fn, ms) => {
+    const t = setTimeout(() => {
+      timers.current.delete(t);
+      fn();
+    }, ms);
+    timers.current.add(t);
     return t;
-  };
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     const el = logRef.current;
@@ -82,58 +78,90 @@ export default function AssistantWidget() {
   }, []);
 
   useEffect(() => {
-    if (open) scrollToBottom();
-  }, [messages, open, scrollToBottom]);
+    if (open && !closing) scrollToBottom();
+  }, [messages, open, closing, scrollToBottom]);
 
-  useEffect(() => {
-    if (!toast) return undefined;
-    const t = setTimeout(() => setToast(''), 2200);
-    return () => clearTimeout(t);
-  }, [toast]);
+  /* open/close --------------------------------------------------------- */
 
-  /* Escape closes and returns focus to the launcher. */
+  const openPanel = useCallback(() => {
+    setTeaser(false);
+    setClosing(false);
+    setOpen(true);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    if (!open || closing) return;
+    setClosing(true);
+    later(() => {
+      restoreFocus.current = true;
+      setOpen(false);
+      setClosing(false);
+    }, CLOSE_MS);
+  }, [open, closing, later]);
+
+  /* Escape closes; Tab is trapped while the drawer is modal */
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        setOpen(false);
-        toggleRef.current?.focus();
+        e.preventDefault();
+        closePanel();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const panel = document.getElementById('assistant-panel');
+      if (!panel) return;
+      const items = Array.from(
+        panel.querySelectorAll('button:not([disabled]), textarea, a[href], [tabindex]:not([tabindex="-1"])'),
+      ).filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, closePanel]);
 
+  /* the launcher only exists while closed, so restore focus after it remounts */
   useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => inputRef.current?.focus(), 220);
-      return () => clearTimeout(t);
-    }
-    return undefined;
+    if (open || !restoreFocus.current) return;
+    restoreFocus.current = false;
+    toggleRef.current?.focus();
   }, [open]);
 
-  const openPanel = () => {
-    setOpen(true);
-    setTeaser(false);
-  };
+  /* focus the composer once the drawer has landed */
+  useEffect(() => {
+    if (!open || closing) return undefined;
+    const t = setTimeout(() => inputRef.current?.focus(), CLOSE_MS);
+    timers.current.add(t);
+    return () => clearTimeout(t);
+  }, [open, closing]);
 
-  const pushBot = (payload) => {
+  /* body scroll lock, like vaul */
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  /* messaging ---------------------------------------------------------- */
+
+  const pushBot = useCallback((payload) => {
     setMessages((prev) => [...prev, { id: nextId(), role: 'bot', ...payload }]);
-  };
+  }, []);
 
-  const goTo = (anchor) => {
-    if (!anchor) return;
-    const el = document.querySelector(anchor);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setToast('Moved to the section');
-    }
-  };
-
-  const runChip = (label) => {
-    const action = resolveChip(label);
-
-    if (action?.intent) {
+  const askAndAnswer = useCallback(
+    (label) => {
       setMessages((prev) => [...prev, { id: nextId(), role: 'user', text: label }]);
       setBusy(true);
       later(() => {
@@ -141,42 +169,44 @@ export default function AssistantWidget() {
         pushBot({ text: reply.answer, chips: reply.chips });
         setBusy(false);
       }, 620);
-      return;
-    }
+    },
+    [later, pushBot],
+  );
 
-    setMessages((prev) => [...prev, { id: nextId(), role: 'user', text: label }]);
+  const runChip = useCallback(
+    (label) => {
+      const action = resolveChip(label);
 
-    if (action?.copy) {
-      navigator.clipboard?.writeText(action.copy).then(
-        () => setToast('Email copied'),
-        () => setToast('Copy failed — email is in the Contact section'),
-      );
-      return;
-    }
+      if (action?.intent) {
+        askAndAnswer(label);
+        return;
+      }
 
-    if (action?.href) {
-      window.open(action.href, action.href.startsWith('mailto:') ? '_self' : '_blank', 'noopener');
-      return;
-    }
+      // Link / copy chips act without polluting the thread with a fake question.
+      if (action?.copy) {
+        navigator.clipboard?.writeText(action.copy).then(
+          () => pushBot({ text: `Email copied — ${action.copy}`, chips: ['Talk to Khang'] }),
+          () => pushBot({ text: `Copy blocked by the browser. The address is ${action.copy}` }),
+        );
+        return;
+      }
 
-    if (action?.anchor) goTo(action.anchor);
-  };
+      if (action?.href) {
+        window.open(action.href, action.href.startsWith('mailto:') ? '_self' : '_blank', 'noopener');
+        return;
+      }
+
+      askAndAnswer(label);
+    },
+    [askAndAnswer, pushBot],
+  );
 
   const send = (e) => {
     e?.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
-
-    setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }]);
     setInput('');
-    setBusy(true);
-
-    later(() => {
-      const reply = resolveReply(text);
-      pushBot({ text: reply.answer, chips: reply.chips });
-      if (reply.anchor) goTo(reply.anchor);
-      setBusy(false);
-    }, 700);
+    askAndAnswer(text);
   };
 
   const onKeyDown = (e) => {
@@ -186,24 +216,26 @@ export default function AssistantWidget() {
     }
   };
 
-  const lastBotChips = useMemo(() => {
+  const lastChips = useMemo(() => {
     const last = [...messages].reverse().find((m) => m.role === 'bot' && m.chips?.length);
-    return last ? { id: last.id, chips: last.chips } : null;
+    return last ? last.id : null;
   }, [messages]);
 
-  return (
-    <>
-      {/* launcher */}
-      <div className={`as-launcher ${open ? 'is-open' : ''}`}>
-        {!open && teaser ? (
+  if (!open && !closing) {
+    return (
+      <div className="as-launcher">
+        {teaser ? (
           <div className="as-teaser">
-            <button type="button" className="as-teaser-close" onClick={() => setTeaser(false)} aria-label="Dismiss greeting">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-                <path d="M2 2l6 6M8 2L2 8" strokeLinecap="round" />
-              </svg>
+            <button
+              type="button"
+              className="as-teaser-close"
+              onClick={() => setTeaser(false)}
+              aria-label="Dismiss greeting"
+            >
+              <Icon d="M6 6l12 12M18 6L6 18" size={12} />
             </button>
             <button type="button" className="as-teaser-text" onClick={openPanel}>
-              Questions about the work? Ask here.
+              Hi! Ask me about Khang's work.
             </button>
           </div>
         ) : null}
@@ -212,49 +244,46 @@ export default function AssistantWidget() {
           ref={toggleRef}
           type="button"
           className="as-toggle"
-          onClick={() => (open ? setOpen(false) : openPanel())}
-          aria-expanded={open}
+          onClick={openPanel}
+          aria-expanded={false}
           aria-controls="assistant-panel"
-          aria-label={open ? 'Close assistant' : 'Open assistant'}
+          aria-label="Open assistant"
         >
-          {open ? <CloseIcon /> : <ChatIcon />}
+          <Icon d="M21 12a8 8 0 01-8 8H7l-4 3 1.2-4.2A8 8 0 1121 12z" />
         </button>
       </div>
+    );
+  }
 
-      {/* panel */}
+  return (
+    <>
+      <div className="as-scrim" onClick={closePanel} aria-hidden />
+
       <div
         id="assistant-panel"
-        className={`as-panel ${open ? 'is-open' : ''}`}
-        ref={panelRef}
+        className="as-panel"
         role="dialog"
-        aria-modal="false"
+        aria-modal="true"
         aria-label="Assistant chat"
-        aria-hidden={!open}
-        {...(!open ? { inert: '' } : {})}
+        style={closing ? { animationName: 'as-slide-to-right' } : undefined}
       >
         <div className="as-head">
-          <div className="as-head-id">
-            <Avatar size={36} />
-            <div className="as-head-text">
-              <p className="as-title">Khang&apos;s assistant</p>
-              <p className="as-status">
-                <span className="as-dot" aria-hidden />
-                Online · answers from this page
-              </p>
-            </div>
+          <div className="as-head-text">
+            <h2 className="as-title">Khang&apos;s assistant</h2>
+            <p className="as-status">Online · answers from this page</p>
           </div>
-          <button type="button" className="as-close" onClick={() => setOpen(false)} aria-label="Close assistant">
-            <CloseIcon />
+          <button type="button" className="as-close" onClick={closePanel} aria-label="Close assistant">
+            <Icon d="M6 6l12 12M18 6L6 18" />
           </button>
         </div>
 
         <div className="as-log" ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
           {messages.map((m) => (
             <div key={m.id} className={`as-row as-row-${m.role}`}>
-              {m.role === 'bot' ? <Avatar size={22} /> : null}
+              {m.role === 'bot' ? <Avatar /> : null}
               <div className="as-bubble-wrap">
                 <div className="as-bubble">{m.text}</div>
-                {m.id === lastBotChips?.id && !busy ? (
+                {m.id === lastChips && !busy ? (
                   <div className="as-chips">
                     {m.chips.map((chip) => (
                       <button type="button" key={chip} className="as-chip" onClick={() => runChip(chip)}>
@@ -269,7 +298,7 @@ export default function AssistantWidget() {
 
           {busy ? (
             <div className="as-row as-row-bot">
-              <Avatar size={22} />
+              <Avatar />
               <div className="as-bubble as-typing" aria-label="Assistant is typing">
                 <span />
                 <span />
@@ -296,13 +325,9 @@ export default function AssistantWidget() {
             placeholder="Ask about the work, the stack, or contact"
           />
           <button type="submit" className="as-send" disabled={!input.trim() || busy} aria-label="Send message">
-            <SendIcon />
+            <Icon d="M21 3L3 10.5l7 3 3 7L21 3z" size={16} />
           </button>
         </form>
-
-        <p className="as-toast" role="status" aria-live="polite">
-          {toast}
-        </p>
       </div>
     </>
   );

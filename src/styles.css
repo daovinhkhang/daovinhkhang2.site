@@ -2486,10 +2486,14 @@ section[id] {
 }
 
 /* ==========================================================================
-   Assistant widget — measured from the Vinamilk chat panel
-   panel 410x700, cream #FFFFF1, header #E9F0F8 89px, 16px blue divider,
-   composer #0213B0 72px, bot bubble radius 4/12/12/12, mono chips 14/18
+   Assistant widget — exact spec measured from Vinamilk's chat drawer
+   (vaul drawer: slideFromRight .5s cubic-bezier(.32,.72,0,1),
+    scrim fadeIn .5s, panel 410x700 / margin 12px 24px 40px 12px,
+    header 89px #E9F0F8, log padding 20px 16px 0 + 8px row gap,
+    16px blue divider, composer 72px #0213B0)
    ========================================================================== */
+
+/* ---- launcher ---------------------------------------------------------- */
 
 .as-launcher {
   position: fixed;
@@ -2499,49 +2503,79 @@ section[id] {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
-  animation: fadeInUp 0.6s var(--ease) both;
+  gap: 8px;
+  text-align: end;
+  animation: as-fade-in-up 1s ease both;
 }
 
+@keyframes as-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.as-launcher.is-open {
+  display: none;
+}
+
+/* greeting card: w-40 (160px), 1px blue border, rounded-br-none */
 .as-teaser {
   position: relative;
-  width: 196px;
+  width: 160px;
+  min-height: 54px;
+  padding: 8px 12px;
   background: var(--cream);
-  border: 1px solid rgba(2, 19, 176, 0.18);
+  border: 1px solid var(--blue);
   border-radius: var(--r-sm) var(--r-sm) 0 var(--r-sm);
-  box-shadow: 0 18px 40px -26px rgba(2, 19, 176, 0.55);
+  animation: as-fade-in 1s ease both;
+}
+
+@keyframes as-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .as-teaser-text {
   display: block;
   width: 100%;
-  padding: 11px 30px 11px 13px;
-  text-align: left;
+  text-align: start;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   line-height: 1.5;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--blue);
 }
 
+/* dismiss: 26px pill sitting on the card's top-right corner */
 .as-teaser-close {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: -9px;
+  right: -9px;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  color: var(--ink-mute);
-  background: rgba(2, 19, 176, 0.06);
+  background: var(--cream);
+  border: 1px solid var(--blue);
+  color: var(--blue);
 }
 
 .as-teaser-close:hover {
-  background: rgba(2, 19, 176, 0.14);
-  color: var(--blue);
+  background: var(--blue);
+  color: var(--cream);
 }
 
+/* round launcher: 56px, mint #CBF7EC, 24px blue icon */
 .as-toggle {
   display: grid;
   place-items: center;
@@ -2550,136 +2584,138 @@ section[id] {
   border-radius: 50%;
   background: var(--mint);
   color: var(--blue);
-  border: 1px solid rgba(2, 19, 176, 0.14);
-  box-shadow: 0 14px 34px -18px rgba(2, 19, 176, 0.7);
-  transition: transform var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+  transition: background var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
 }
 
 .as-toggle:hover {
-  transform: translateY(-2px);
   background: var(--lime);
+  transform: translateY(-2px);
 }
 
-.as-launcher.is-open .as-toggle {
-  background: var(--blue);
-  color: var(--cream);
+/* ---- scrim: fixed inset-0 z-40 bg-black/40, fadeIn .5s ----------------- */
+
+.as-scrim {
+  position: fixed;
+  inset: 0;
+  /* above the site header (50) and ticker (60), below the drawer (80) */
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.4);
+  animation: as-scrim-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-/* panel ------------------------------------------------------------------ */
+@keyframes as-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- panel: slideFromRight .5s cubic-bezier(.32,.72,0,1) --------------- */
 
 .as-panel {
   position: fixed;
-  right: 12px;
-  bottom: 12px;
-  z-index: 59;
-  display: none;
+  z-index: 80;
+  display: flex;
   flex-direction: column;
-  width: 410px;
-  max-width: calc(100vw - 24px);
-  height: 700px;
-  max-height: calc(100dvh - 24px);
   overflow: hidden;
   background: var(--cream);
-  border: 1px solid rgba(2, 19, 176, 0.16);
+  width: 410px;
+  height: 700px;
+  max-height: calc(100dvh - 52px);
+  right: 24px;
+  bottom: 40px;
   border-radius: var(--r-sm);
-  box-shadow: 0 40px 90px -50px rgba(2, 19, 176, 0.85);
+  animation: as-slide-from-right 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-.as-panel.is-open {
-  display: flex;
-  animation: fadeInUp 0.42s var(--ease) both;
+@keyframes as-slide-from-right {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-/* header: 89px, baby-blue-50 */
+@keyframes as-slide-to-right {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+/* vaul draws this hairline around the drawer; it reads as the panel edge */
+.as-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(2, 19, 176, 0.14);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ---- header: 89px, #E9F0F8, 1px baby-blue rule, no avatar -------------- */
+
 .as-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
   padding: 16px;
   background: var(--baby-blue-50);
-  border-bottom: 1px solid rgba(2, 19, 176, 0.1);
-}
-
-.as-head-id {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.as-avatar {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--blue);
-  color: var(--cream);
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.as-head-text {
-  min-width: 0;
+  border-bottom: 1px solid var(--baby-blue);
 }
 
 .as-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--blue);
 }
 
 .as-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 3px 0 0;
+  margin: 0;
   font-family: var(--font-serif);
-  font-size: 0.8125rem;
-  line-height: 1.3;
-  color: var(--ink-soft);
-}
-
-.as-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #0f8f4a;
-  box-shadow: 0 0 0 3px rgba(15, 143, 74, 0.16);
+  font-size: 1rem;
+  font-weight: 450;
+  line-height: 1.5;
+  color: var(--blue);
 }
 
 .as-close {
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 48px;
   height: 40px;
-  border-radius: var(--r-sm);
+  padding: 0 8px;
+  border-radius: var(--r-xs);
   color: var(--blue);
-  flex: 0 0 auto;
 }
 
 .as-close:hover {
   background: rgba(2, 19, 176, 0.08);
 }
 
-/* message log ------------------------------------------------------------ */
+/* ---- log: padding 20px 16px 0, 8px between rows ------------------------ */
 
 .as-log {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 16px 18px;
+  gap: 8px;
+  padding: 20px 16px 0;
   background: var(--baby-blue-50);
   scrollbar-width: thin;
   scrollbar-color: rgba(2, 19, 176, 0.24) transparent;
@@ -2705,47 +2741,65 @@ section[id] {
   justify-content: flex-end;
 }
 
-.as-bubble-wrap {
-  min-width: 0;
-  max-width: 88%;
+/* avatar 24px, circle, margin-right 8px (VNM: mr-2 size-6) */
+.as-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
-/* bot bubble: cream, radius 4/12/12/12 (square corner = tail) */
+.as-bubble-wrap {
+  min-width: 0;
+  max-width: calc(100% - 32px);
+}
+
+/* bubble: #FFFFF1, radius 4px 12px 12px, padding 12px 16px, serif 16/24 */
 .as-bubble {
   padding: 12px 16px;
   border-radius: var(--r-sm) 12px 12px 12px;
   background: var(--cream);
   color: var(--blue);
   font-family: var(--font-serif);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.5;
-  box-shadow: 0 1px 0 rgba(2, 19, 176, 0.06);
 }
 
 .as-row-user .as-bubble {
-  border-radius: 12px 12px 4px 12px;
+  border-radius: 12px 12px var(--r-sm) 12px;
   background: var(--blue);
   color: var(--cream);
 }
 
-/* chips: ghost buttons, 1px blue border, mono 14/18, radius 4 */
+/* chips: 1px blue, radius 4, mono 14/18, padding 10px 12px, h 40 */
 .as-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .as-chip {
-  padding: 9px 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 10px 12px;
   border: 1px solid var(--blue);
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--blue);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.4;
-  letter-spacing: 0.01em;
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+  letter-spacing: 0;
   transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
 }
 
@@ -2791,14 +2845,16 @@ section[id] {
   }
 }
 
-/* 16px blue divider strip */
+/* ---- 16px blue divider ------------------------------------------------ */
+
 .as-strip {
   flex: 0 0 auto;
   height: 16px;
   background: var(--blue);
 }
 
-/* composer: 72px, blue */
+/* ---- composer: 72px, #0213B0, transparent textarea -------------------- */
+
 .as-compose {
   flex: 0 0 auto;
   display: flex;
@@ -2812,20 +2868,20 @@ section[id] {
 .as-input {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 38px;
-  max-height: 96px;
-  padding: 8px 0;
+  height: 28px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--cream);
   font-family: var(--font-serif);
   font-size: 1rem;
-  line-height: 1.4;
+  line-height: 1.5;
   resize: none;
+  overflow-y: auto;
 }
 
 .as-input::placeholder {
-  color: rgba(255, 255, 241, 0.6);
+  color: rgba(255, 255, 241, 0.62);
 }
 
 .as-input:focus {
@@ -2833,87 +2889,47 @@ section[id] {
 }
 
 .as-compose:focus-within {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 241, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 241, 0.3);
 }
 
+/* send: 37x40, icon only, blue glyph on the blue bar (VNM uses cream icon) */
 .as-send {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-sm);
-  background: var(--lime);
-  color: var(--blue);
-  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
-}
-
-.as-send:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.as-send:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.as-toast {
-  position: absolute;
-  left: 50%;
-  bottom: 88px;
-  transform: translateX(-50%);
-  margin: 0;
-  padding: 7px 12px;
-  border-radius: var(--r-pill);
-  background: var(--blue);
+  width: 37px;
+  height: 40px;
+  padding: 2px;
   color: var(--cream);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
   transition: opacity var(--dur-2) var(--ease);
 }
 
-.as-toast:not(:empty) {
-  opacity: 1;
+.as-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-/* mobile: bottom sheet, no radius (VNM uses inset-x-0 bottom-0) */
-@media (max-width: 520px) {
+/* ---- mobile: full-screen drawer, still slides from the right ---------- */
+
+@media (max-width: 767px) {
   .as-panel {
-    right: 0;
-    bottom: 0;
+    inset: 0;
     width: 100%;
-    max-width: 100%;
-    height: 88dvh;
-    max-height: 88dvh;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
-  }
-
-  .as-launcher {
-    right: 12px;
-    bottom: 12px;
-  }
-
-  .as-teaser {
-    width: 178px;
-  }
-
-  .as-bubble-wrap {
-    max-width: 84%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .as-launcher,
-  .as-panel.is-open {
+  .as-teaser {
     animation: none;
+  }
+
+  .as-panel,
+  .as-scrim {
+    animation-duration: 0.001ms !important;
   }
 
   .as-typing span {
