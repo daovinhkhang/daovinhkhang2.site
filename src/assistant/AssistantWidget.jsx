@@ -3,6 +3,19 @@ import { GREETING, QUICK_REPLIES, resolveChip, resolveReply } from './knowledge'
 import { answerLocally, ask, followUp, perform } from './client';
 import { focusStop } from './director';
 import { DEFAULT_ROUTE, TOUR_DWELL, buildStops } from './tour';
+import {
+  clearMemory,
+  currentSection,
+  hasHistory,
+  inferStyle,
+  loadMemory,
+  mergeStyle,
+  noteShown,
+  noteTopic,
+  rememberTurn,
+  saveMemory,
+  visitorPrompt,
+} from './memory';
 import TourBar from './TourBar';
 
 function Icon({ d, size = 24, stroke = true }) {
@@ -51,14 +64,27 @@ export default function AssistantWidget() {
   const [narration, setNarration] = useState('');
   // null = not touring; otherwise the whole walk lives here
   const [tour, setTour] = useState(null);
-  const [messages, setMessages] = useState(() =>
-    GREETING.map((text, i) => ({
+  const [, setMemory] = useState(loadMemory);
+  const [resumed, setResumed] = useState(false);
+
+  const [messages, setMessages] = useState(() => {
+    const mem = loadMemory();
+    if (!hasHistory(mem)) {
+      return GREETING.map((text, i) => ({
+        id: nextId(),
+        role: 'bot',
+        text,
+        chips: i === GREETING.length - 1 ? QUICK_REPLIES.map((q) => q.label) : [],
+      }));
+    }
+    // Welcome them back to the same thread rather than restarting cold.
+    return mem.messages.map((m, i) => ({
       id: nextId(),
-      role: 'bot',
-      text,
-      chips: i === GREETING.length - 1 ? QUICK_REPLIES.map((q) => q.label) : [],
-    })),
-  );
+      role: m.role === 'user' ? 'user' : 'bot',
+      text: m.text,
+      chips: i === mem.messages.length - 1 && m.role !== 'user' ? QUICK_REPLIES.map((q) => q.label) : [],
+    }));
+  });
 
   const inputRef = useRef(null);
   const logRef = useRef(null);
@@ -244,8 +270,45 @@ export default function AssistantWidget() {
 
   /* messaging ---------------------------------------------------------- */
 
-  const pushBot = useCallback((payload) => {
-    setMessages((prev) => [...prev, { id: nextId(), role: 'bot', ...payload }]);
+  /* persist: transcript, visit count, and the register we infer from what they
+     actually type (not from what we say back) */
+  const recordTurn = useCallback((role, text) => {
+    setMemory((mem) => {
+      const userTexts = [...mem.messages.filter((m) => m.role === 'user').map((m) => m.text), role === 'user' ? text : ''].filter(Boolean);
+      const next = {
+        ...rememberTurn(mem, role, text),
+        style: mergeStyle(mem.style, inferStyle(userTexts.slice(-6))),
+        lang: inferStyle(userTexts.slice(-6))?.lang || mem.lang,
+      };
+      saveMemory(next);
+      return next;
+    });
+  }, []);
+
+  const pushBot = useCallback(
+    (payload) => {
+      setMessages((prev) => [...prev, { id: nextId(), role: 'bot', ...payload }]);
+      recordTurn('bot', payload.text);
+    },
+    [recordTurn],
+  );
+
+  /* one visit per page load, not per render: StrictMode runs effects twice */
+  const counted = useRef(false);
+  useEffect(() => {
+    if (counted.current) return;
+    counted.current = true;
+    setResumed(hasHistory(loadMemory()));
+    setMemory((mem) => {
+      const next = {
+        ...mem,
+        visits: (mem.visits || 0) + 1,
+        firstSeen: mem.firstSeen || new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+      };
+      saveMemory(next);
+      return next;
+    });
   }, []);
 
   const askAndAnswer = useCallback(
@@ -255,7 +318,18 @@ export default function AssistantWidget() {
       setBusy(true);
       setNarration('');
 
-      const result = (await ask(history)) || answerLocally(label);
+      // Persist and derive the profile in one pass: state updates land after
+      // this render, so the request would otherwise carry last turn's profile.
+      const base = loadMemory();
+      const withTurn = rememberTurn(base, 'user', label);
+      const userTexts = withTurn.messages.filter((m) => m.role === 'user').map((m) => m.text);
+      const style = mergeStyle(base.style, inferStyle(userTexts.slice(-6)));
+      const nextMem = { ...withTurn, style, lang: style?.lang || base.lang };
+      saveMemory(nextMem);
+      setMemory(nextMem);
+
+      const profile = visitorPrompt(nextMem, currentSection());
+      const result = (await ask(history, { profile })) || answerLocally(label);
       if (!alive.current) return;
 
       const calls = result.calls || [];
@@ -287,13 +361,16 @@ export default function AssistantWidget() {
       await wait(80); // let React commit before driving the page
       if (!alive.current) return;
 
+      const shownId = calls.find((c) => c.args.system)?.args.system || calls.find((c) => c.args.section)?.args.section;
+      if (shownId) setMemory((mem) => { const n = noteShown(noteTopic(mem, shownId), shownId); saveMemory(n); return n; });
+
       const results = await perform(calls);
       if (!alive.current) return;
       setNarration(results.filter(Boolean).join(' · ') || calls[0].args.reason || 'Showing you the page.');
 
       // A tool-calling turn returns no prose, so ask for the explanation now
       // that the page has already moved.
-      const said = result.text || (await followUp(history, calls, results));
+      const said = result.text || (await followUp(history, calls, results, undefined, profile));
       if (!alive.current) return;
       pushBot({ text: said || 'There you go — it is on screen now.' });
       setBusy(false);
@@ -450,6 +527,30 @@ export default function AssistantWidget() {
         </div>
 
         <div className="as-log" ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
+          {resumed ? (
+            <p className="as-resumed">
+              Continuing from your last visit
+              <button
+                type="button"
+                className="as-resumed-reset"
+                onClick={() => {
+                  clearMemory();
+                  setMemory(loadMemory());
+                  setResumed(false);
+                  setMessages(
+                    GREETING.map((text, i) => ({
+                      id: nextId(),
+                      role: 'bot',
+                      text,
+                      chips: i === GREETING.length - 1 ? QUICK_REPLIES.map((q) => q.label) : [],
+                    })),
+                  );
+                }}
+              >
+                Start fresh
+              </button>
+            </p>
+          ) : null}
           {messages.map((m) => (
             <div key={m.id} className={`as-row as-row-${m.role}`}>
               {m.role === 'bot' ? <Avatar /> : null}

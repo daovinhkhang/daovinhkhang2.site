@@ -57,6 +57,7 @@ shows a dead chat box.
 | `director.js` | executes a tool call against real DOM / page state |
 | `tools.js` | one tool schema shared by the function and the client |
 | `knowledge.js` | curated answers used when the API is unavailable |
+| `memory.js` | localStorage profile, style inference, viewport context |
 | `tour.js` | tour stops, fallback narration, default route |
 | `TourBar.jsx` | the docent bar: meter, dots, narration, controls |
 | `netlify/functions/chat.mjs` | server-side proxy |
@@ -108,6 +109,53 @@ underneath it would be invisible, and `window.scrollTo` is a no-op while the
 body is locked. So when the model calls a tool the drawer slides out, the
 scroll lock is released, the page moves, and a slim narration bar explains what
 just happened. Tapping the bar returns to the conversation.
+
+## Memory and voice
+
+The assistant keeps a small profile on the visitor's own machine in
+`localStorage` (`khang.assistant.v1`) — nothing is stored server-side and the
+proxy is stateless.
+
+What it remembers:
+
+| Field | Use |
+| --- | --- |
+| `messages` | the last 10 turns, restored into the thread on return |
+| `visits`, `firstSeen`, `lastSeen` | "visit 3, last seen 2 days ago" |
+| `style` | language, register, pronouns, emoji, average message length |
+| `shown` | sections and systems already opened, so it stops re-walking them |
+| `topics` | what was already discussed |
+
+`inferStyle` reads the visitor's own messages, not the assistant's: Vietnamese
+register is mostly carried by pronouns and sentence-final particles
+(`mình/bạn/nhé` versus `anh/chị/ạ`), so those drive the classification. The
+result is compressed to three lines and sent as the `VISITOR` block:
+
+```
+- Returning visitor: visit 2, last seen just now.
+- Writes in Vietnamese · register: casual · uses "mình" · no emoji · messages average 9 words.
+- Write the way they write: mirror those pronouns and that formality, keep your
+  sentences about as long as theirs, and never sound more formal than they do.
+- Currently looking at: work.
+- Already shown: tasker. Do not walk them back to something unless they ask.
+```
+
+Same question, two profiles, demonstrably different voice:
+
+> **casual** — "KAMI là bộ công cụ AI của Khang, gồm mấy phần chính… Bạn muốn tìm hiểu phần nào hơn không?"
+>
+> **formal** — "KAMI là lớp AI làm việc chạy bên trong Odoo 17–19… Anh/chị muốn tìm hiểu phần nào thêm ạ?"
+
+`currently looking at` comes from `currentSection()`, which reads the viewport
+at the moment the message is sent, so the assistant knows which section is on
+screen rather than guessing from the transcript.
+
+The **profile is built synchronously from the transcript** before the request
+goes out. Reading it from React state was one render stale, which meant the
+first message of a visit carried no style at all.
+
+A returning visitor sees "Continuing from your last visit" above the restored
+thread with a **Start fresh** control that clears storage and resets the chat.
 
 ## Language
 

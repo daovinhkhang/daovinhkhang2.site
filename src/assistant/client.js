@@ -63,7 +63,7 @@ function recent(messages) {
  * Ask the proxy. Resolves to { text, calls } or null when unavailable,
  * so the caller can fall back to the local knowledge base.
  */
-export async function ask(messages, { signal } = {}) {
+export async function ask(messages, { signal, profile } = {}) {
   // Only cancel a request that is still running. A finished one must never be
   // aborted, or its `finally` races the call that just replaced it.
   if (inflight && !inflight.settled) inflight.ctrl.abort();
@@ -80,7 +80,7 @@ export async function ask(messages, { signal } = {}) {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ messages: recent(messages), context: CONTEXT, tools: TOOLS }),
+      body: JSON.stringify({ messages: recent(messages), context: CONTEXT, tools: TOOLS, profile }),
       signal: ctrl.signal,
     });
 
@@ -124,7 +124,7 @@ export async function ask(messages, { signal } = {}) {
  * second `user` message — two consecutive user turns made the model answer with
  * empty content.
  */
-export async function followUp(messages, calls, results, signal) {
+export async function followUp(messages, calls, results, signal, profile) {
   const summary = calls.map((c) => `${c.name}(${JSON.stringify(c.args)})`).join(', ');
   const outcome = results.filter(Boolean).join(' ');
 
@@ -148,6 +148,7 @@ export async function followUp(messages, calls, results, signal) {
           },
         ],
         context: CONTEXT,
+        profile,
       }),
       signal,
     });

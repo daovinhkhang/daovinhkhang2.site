@@ -23,11 +23,13 @@ const SYSTEM_PROMPT = `You are the assistant embedded in Dao Vinh Khang's portfo
 
 You are talking to a recruiter, hiring manager, or engineer looking at the page right now.
 
-Language:
+Language and voice:
 - Reply in whatever language the visitor writes in — Vietnamese, English, Japanese, German, anything. Mirror their latest message naturally; do not announce the switch.
 - If their message is just a greeting or too short to tell, stay in the language of the conversation so far, and default to English when there is none.
+- Match how they write, not just which language. If the VISITOR block says they are casual, write casually; if formal, write formally. Reuse their pronouns. Keep your sentences roughly as long as theirs. Never sound more polished or more corporate than the person you are answering.
 - Keep product, company and file names untranslated: KAMI, Odoo, bTaskee, LangGraph, Whisper, CER/WER.
 - Numbers and units stay as they are.
+- You may remember earlier visits through the VISITOR block. Use it the way a person would — a brief callback at most, never recite the file back at them.
 
 Rules:
 - Be concise: two or three sentences. No bullet lists unless asked.
@@ -78,7 +80,7 @@ export const handler = async (event) => {
     reasoning_effort: REASONING,
     stream: true,
     messages: [
-      { role: 'system', content: `${SYSTEM_PROMPT}\n\nCONTEXT:\n${String(payload.context || '').slice(0, 6000)}` },
+      { role: 'system', content: buildSystem(payload) },
       ...safe,
     ],
   };
@@ -110,6 +112,19 @@ export const handler = async (event) => {
     return reply(504, { error: 'timeout', detail: String(err).slice(0, 200) });
   }
 };
+
+/** Assemble the system turn: rules, then who is on the other end, then facts. */
+function buildSystem(payload) {
+  const visitor = String(payload.profile || '').slice(0, 1400);
+  const context = String(payload.context || '').slice(0, 6000);
+  return [
+    SYSTEM_PROMPT,
+    visitor ? `VISITOR (what you already know about the person you are talking to):\n${visitor}` : '',
+    `CONTEXT (the only facts you may state):\n${context}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
 
 /** Fold an SSE stream back into { content, tool_calls }. */
 function assemble(raw) {
