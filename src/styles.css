@@ -2737,6 +2737,20 @@ section[id] {
   align-items: flex-start;
   gap: 8px;
   max-width: 100%;
+  /* each turn arrives rather than appearing — same 0.4s shape as the panel,
+     short enough that a fast exchange does not feel laggy */
+  animation: as-row-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes as-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .as-row-user {
