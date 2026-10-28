@@ -142,7 +142,9 @@ export async function followUp(messages, calls, results, signal) {
           { role: 'assistant', content: `[On the page now: ${summary}. ${outcome}]` },
           {
             role: 'user',
-            content: `Yes — now tell me about it in two short sentences, as the guide. My question was: "${lastUser?.content || ''}"`,
+            // Language is mirrored, not fixed: the follow-up would otherwise
+            // revert to English right after a Vietnamese question.
+            content: `Yes — now tell me about it in two short sentences, as the guide, in the same language I used. My question was: "${lastUser?.content || ''}"`,
           },
         ],
         context: CONTEXT,

@@ -109,6 +109,18 @@ body is locked. So when the model calls a tool the drawer slides out, the
 scroll lock is released, the page moves, and a slim narration bar explains what
 just happened. Tapping the bar returns to the conversation.
 
+## Language
+
+The assistant replies in whatever language the visitor writes in — Vietnamese,
+English, Japanese, German, anything — and keeps product names untranslated. The
+rule lives in `SYSTEM_PROMPT`; the follow-up turn after a page action repeats it
+so the language does not snap back to English mid-flow. Tour narration is
+written by the model, so it follows the same rule.
+
+The **fallback** is the exception: when no API key is configured, answers come
+from the curated English text in `knowledge.js` and the tour uses the English
+narration in `tour.js`. That path cannot translate.
+
 ## Known limits
 
 - Answers are grounded in the `CONTEXT` block in `client.js`. Keep it in sync
