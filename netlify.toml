@@ -6,8 +6,14 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA fallback. The /api/* prefix is served by functions before this rule runs,
-# so the assistant proxy keeps working while every other path loads the app.
+# The assistant proxy, mounted on the path its client calls.
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+  force = true
+
+# SPA fallback. Declared after the API rule so it cannot swallow it.
 [[redirects]]
   from = "/*"
   to = "/index.html"
