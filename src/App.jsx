@@ -706,6 +706,25 @@ export default function App() {
     };
   }, [navOpen]);
 
+  /* The assistant drives the page through these two events. This is the only
+     coupling between the widget and App — one listener each. */
+  useEffect(() => {
+    const onSystem = (e) => {
+      const id = e.detail?.id;
+      if (SYSTEMS.some((s) => s.id === id)) setActiveSystem(id);
+    };
+    const onExperience = (e) => {
+      const id = e.detail?.id;
+      if (EXPERIENCES.some((x) => x.id === id)) setOpenExp(id);
+    };
+    window.addEventListener('ai:show-system', onSystem);
+    window.addEventListener('ai:open-experience', onExperience);
+    return () => {
+      window.removeEventListener('ai:show-system', onSystem);
+      window.removeEventListener('ai:open-experience', onExperience);
+    };
+  }, []);
+
   const active = SYSTEMS.find((s) => s.id === activeSystem) || SYSTEMS[0];
   const toggleExp = (id) => setOpenExp((prev) => (prev === id ? null : id));
 

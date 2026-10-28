@@ -2550,7 +2550,9 @@ section[id] {
   text-align: start;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  line-height: 1.5;
+  /* Vinamilk's card is 54px tall holding three 12px lines (36 + 16 padding + 2
+     border), so the leading is exactly 1 — not the usual 1.5. */
+  line-height: 1;
   letter-spacing: 0.01em;
   color: var(--blue);
 }
@@ -2935,5 +2937,145 @@ section[id] {
   .as-typing span {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/* ==========================================================================
+   Assistant — narration bar + spotlight
+   When the assistant drives the page it steps out of the way (a modal that
+   stays open hides the very thing it just changed), leaving a slim bar.
+   ========================================================================== */
+
+.as-narrator {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 12px 12px 16px;
+  border-radius: var(--r-sm);
+  background: var(--blue);
+  color: var(--cream);
+  transform: translateX(-50%);
+  animation: as-rise 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: 0 12px 40px rgba(2, 19, 176, 0.28);
+}
+
+@keyframes as-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 120%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.as-narrator-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lime);
+  animation: as-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes as-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+.as-narrator-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+}
+
+.as-narrator-btn {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--cream);
+  transition: background var(--dur-2) var(--ease);
+}
+
+.as-narrator-btn:hover {
+  background: rgba(255, 255, 241, 0.16);
+}
+
+/* ---- spotlight: ring around the element the assistant is talking about -- */
+
+.ai-spotlight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 75;
+  pointer-events: none;
+  border: 2px solid var(--lime);
+  border-radius: var(--r-sm);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease), width 0.45s var(--ease), height 0.45s var(--ease),
+    transform 0.45s var(--ease);
+  box-shadow: 0 0 0 9999px rgba(2, 19, 176, 0.16), 0 0 32px rgba(203, 247, 236, 0.5);
+}
+
+.ai-spotlight.is-on {
+  opacity: 1;
+}
+
+.ai-spotlight-tag {
+  position: absolute;
+  top: -30px;
+  left: -2px;
+  padding: 4px 8px;
+  border-radius: var(--r-xs);
+  background: var(--lime);
+  color: var(--blue);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-narrator,
+  .as-narrator-dot {
+    animation: none;
+  }
+
+  .ai-spotlight {
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .as-narrator {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+    transform: none;
+    animation: none;
   }
 }

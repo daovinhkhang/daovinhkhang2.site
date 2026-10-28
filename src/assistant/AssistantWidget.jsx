@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GREETING, QUICK_REPLIES, resolveChip, resolveReply } from './knowledge';
+import { answerLocally, ask, followUp, perform } from './client';
 
 function Icon({ d, size = 24, stroke = true }) {
   return (
@@ -34,13 +35,17 @@ const nextId = () => {
 };
 
 const CLOSE_MS = 500; // matches the drawer's 0.5s slide-out
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default function AssistantWidget() {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  // mini: the drawer steps aside so the page it just changed is visible
+  const [mini, setMini] = useState(false);
   const [teaser, setTeaser] = useState(true);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [narration, setNarration] = useState('');
   const [messages, setMessages] = useState(() =>
     GREETING.map((text, i) => ({
       id: nextId(),
@@ -55,6 +60,14 @@ export default function AssistantWidget() {
   const toggleRef = useRef(null);
   const timers = useRef(new Set());
   const restoreFocus = useRef(false);
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
@@ -78,14 +91,15 @@ export default function AssistantWidget() {
   }, []);
 
   useEffect(() => {
-    if (open && !closing) scrollToBottom();
-  }, [messages, open, closing, scrollToBottom]);
+    if (open && !closing && !mini) scrollToBottom();
+  }, [messages, open, closing, mini, scrollToBottom]);
 
-  /* open/close --------------------------------------------------------- */
+  /* open / close / minimise --------------------------------------------- */
 
   const openPanel = useCallback(() => {
     setTeaser(false);
     setClosing(false);
+    setMini(false);
     setOpen(true);
   }, []);
 
@@ -96,8 +110,16 @@ export default function AssistantWidget() {
       restoreFocus.current = true;
       setOpen(false);
       setClosing(false);
+      setMini(false);
     }, CLOSE_MS);
   }, [open, closing, later]);
+
+  /* the launcher only exists while closed, so restore focus after it remounts */
+  useEffect(() => {
+    if (open || !restoreFocus.current) return;
+    restoreFocus.current = false;
+    toggleRef.current?.focus();
+  }, [open]);
 
   /* Escape closes; Tab is trapped while the drawer is modal */
   useEffect(() => {
@@ -108,7 +130,7 @@ export default function AssistantWidget() {
         closePanel();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (mini || e.key !== 'Tab') return;
       const panel = document.getElementById('assistant-panel');
       if (!panel) return;
       const items = Array.from(
@@ -127,32 +149,25 @@ export default function AssistantWidget() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, closePanel]);
-
-  /* the launcher only exists while closed, so restore focus after it remounts */
-  useEffect(() => {
-    if (open || !restoreFocus.current) return;
-    restoreFocus.current = false;
-    toggleRef.current?.focus();
-  }, [open]);
+  }, [open, closing, mini, closePanel]);
 
   /* focus the composer once the drawer has landed */
   useEffect(() => {
-    if (!open || closing) return undefined;
+    if (!open || closing || mini) return undefined;
     const t = setTimeout(() => inputRef.current?.focus(), CLOSE_MS);
     timers.current.add(t);
     return () => clearTimeout(t);
-  }, [open, closing]);
+  }, [open, closing, mini]);
 
-  /* body scroll lock, like vaul */
+  /* body scroll lock — released while the drawer is minimised so the page moves */
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || mini) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, mini]);
 
   /* messaging ---------------------------------------------------------- */
 
@@ -161,16 +176,46 @@ export default function AssistantWidget() {
   }, []);
 
   const askAndAnswer = useCallback(
-    (label) => {
-      setMessages((prev) => [...prev, { id: nextId(), role: 'user', text: label }]);
+    async (label) => {
+      const history = [...messages, { id: nextId(), role: 'user', text: label }];
+      setMessages(history);
       setBusy(true);
-      later(() => {
-        const reply = resolveReply(label);
-        pushBot({ text: reply.answer, chips: reply.chips });
+      setNarration('');
+
+      const result = (await ask(history)) || answerLocally(label);
+      if (!alive.current) return;
+
+      const calls = result.calls || [];
+
+      if (!calls.length) {
+        pushBot({ text: result.text, chips: result.local ? result.chips : undefined });
         setBusy(false);
-      }, 620);
+        return;
+      }
+
+      // Step aside FIRST: the drawer is modal, so while it is open the body is
+      // scroll-locked and window.scrollTo silently does nothing.
+      setNarration(calls[0].args.reason || '');
+      setClosing(true);
+      await wait(300);
+      if (!alive.current) return;
+      setMini(true); // releases the scroll lock and shows the narration bar
+      setClosing(false);
+      await wait(80); // let React commit before driving the page
+      if (!alive.current) return;
+
+      const results = await perform(calls);
+      if (!alive.current) return;
+      setNarration(results.filter(Boolean).join(' · ') || calls[0].args.reason || 'Showing you the page.');
+
+      // A tool-calling turn returns no prose, so ask for the explanation now
+      // that the page has already moved.
+      const said = result.text || (await followUp(history, calls, results));
+      if (!alive.current) return;
+      pushBot({ text: said || 'There you go — it is on screen now.' });
+      setBusy(false);
     },
-    [later, pushBot],
+    [messages, pushBot],
   );
 
   const runChip = useCallback(
@@ -221,6 +266,23 @@ export default function AssistantWidget() {
     return last ? last.id : null;
   }, [messages]);
 
+  /* ---- minimised: a narration bar instead of the drawer ---------------- */
+
+  if (open && mini) {
+    return (
+      <div className="as-narrator" role="status" aria-live="polite">
+        <span className="as-narrator-dot" aria-hidden />
+        <p className="as-narrator-text">{narration || 'Showing you the page.'}</p>
+        <button type="button" className="as-narrator-btn" onClick={() => setMini(false)} aria-label="Back to chat">
+          <Icon d="M21 12a8 8 0 01-8 8H7l-4 3 1.2-4.2A8 8 0 1121 12z" size={18} />
+        </button>
+        <button type="button" className="as-narrator-btn" onClick={closePanel} aria-label="Close assistant">
+          <Icon d="M6 6l12 12M18 6L6 18" size={18} />
+        </button>
+      </div>
+    );
+  }
+
   if (!open && !closing) {
     return (
       <div className="as-launcher">
@@ -235,7 +297,7 @@ export default function AssistantWidget() {
               <Icon d="M6 6l12 12M18 6L6 18" size={12} />
             </button>
             <button type="button" className="as-teaser-text" onClick={openPanel}>
-              Hi! Ask me about Khang's work.
+              Hi! Ask about Khang's work.
             </button>
           </div>
         ) : null}
