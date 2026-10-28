@@ -68,6 +68,20 @@ export function spotlight(el, label) {
 /**
  * Runs one validated tool call. Resolves to a short log line for the thread.
  */
+/**
+ * Move the page to one tour stop and ring the element it is talking about.
+ * Returns a disposer for the spotlight so the caller can clear it on the next
+ * stop (or when the tour ends).
+ */
+export function focusStop(stop) {
+  const scrollEl = document.querySelector(stop.scroll);
+  if (scrollEl) scrollIntoView(scrollEl, 24);
+
+  const spotEl = stop.spot ? document.querySelector(stop.spot) : null;
+  if (!spotEl) return () => {};
+  return spotlight(spotEl, stop.title);
+}
+
 export async function runTool(call) {
   const { name, args } = call;
 

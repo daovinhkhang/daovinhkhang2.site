@@ -57,6 +57,8 @@ shows a dead chat box.
 | `director.js` | executes a tool call against real DOM / page state |
 | `tools.js` | one tool schema shared by the function and the client |
 | `knowledge.js` | curated answers used when the API is unavailable |
+| `tour.js` | tour stops, fallback narration, default route |
+| `TourBar.jsx` | the docent bar: meter, dots, narration, controls |
 | `netlify/functions/chat.mjs` | server-side proxy |
 | `src/App.jsx` | listens for `ai:show-system` and `ai:open-experience` |
 
@@ -71,9 +73,33 @@ Only two lines couple the widget to the app: the `CustomEvent` dispatch in
 | `open_experience` | expands a role, scrolls to it |
 | `go_to_section` | scrolls to a section |
 | `highlight` | draws a spotlight ring around one element |
+| `start_tour` | composes a guided route and walks the visitor through it |
 
 Every call is validated in `validateCall` before it runs — the model cannot
 invent a system id, and a bad selector is swallowed rather than thrown.
+
+## The guided tour
+
+Ask for "the tour", "a walkthrough", or "show me around" and the assistant stops
+chatting and becomes a docent: it picks its own route, closes the drawer, and
+walks the page stop to stop.
+
+The route is **composed per visitor**, not fixed. Asked for a RAG role it goes
+work → metrics → stack; asked for a general overview it goes hero → about →
+work → capabilities → experience → contact. `tour.js` holds the stops and their
+fallback narration; the model supplies the order and may rewrite every line.
+
+While touring:
+
+- the bar advances on its own every 7s, so it leads rather than waits
+- the meter at the top refills per stop and mirrors that timer exactly
+- Pause freezes both the meter and the timer; Back and Next override the pace
+- each stop scrolls, then rings its element with a labelled spotlight
+- the spotlight is disposed between stops and on exit, so nothing is stranded
+- Finish returns to the conversation with the transcript intact
+
+The tour bar is its own surface rather than a mode of the drawer: a modal cannot
+show the thing it is describing, and the drawer's scrim would cover it.
 
 ## Why the drawer gets out of the way
 

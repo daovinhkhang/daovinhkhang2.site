@@ -6,6 +6,8 @@
  * only ever offered actions the page can genuinely perform.
  */
 
+import { TOUR_IDS } from './tour.js';
+
 export const SYSTEMS = ['kami-pro', 'kami-community', 'kami-medusa', 'tasker', 'stt'];
 export const EXPERIENCES = ['btaskee', 'erax', 'fptis', 'greenwich'];
 export const SECTIONS = [
@@ -78,6 +80,44 @@ export const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'start_tour',
+      description:
+        'Give the user a guided tour of the whole site, walking them stop to stop on their behalf. Use when they ask for a tour, an overview, a walkthrough, "show me around", or want the site explained end to end. You choose the route and the words.',
+      parameters: {
+        type: 'object',
+        properties: {
+          intro: { type: 'string', description: 'One short sentence you say before the first stop.' },
+          stops: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 6,
+            description:
+              'The route, in the order that best fits what this visitor cares about. Pick 3-5 stops.',
+            items: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  enum: TOUR_IDS,
+                  description:
+                    'hero = opening. about = the short version. work = shipped systems. capabilities = the stack. metrics = the headline numbers. experience = employers. education = study. contact = how to reach him.',
+                },
+                note: {
+                  type: 'string',
+                  description: 'One or two sentences to say at this stop. Your own words.',
+                },
+              },
+              required: ['id', 'note'],
+            },
+          },
+        },
+        required: ['stops', 'intro'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'highlight',
       description:
         'Draw a temporary spotlight ring around a single element so the user can spot one detail you just described. Use sparingly, after scrolling somewhere.',
@@ -110,6 +150,15 @@ export function validateCall(name, args) {
   if (name === 'open_experience' && EXPERIENCES.includes(a.company))
     return { company: a.company, reason: str(a.reason) };
   if (name === 'go_to_section' && SECTIONS.includes(a.section)) return { section: a.section, reason: str(a.reason) };
+  if (name === 'start_tour') {
+    if (!Array.isArray(a.stops)) return null;
+    const stops = a.stops
+      .filter((x) => x && TOUR_IDS.includes(x.id))
+      .slice(0, 6)
+      .map((x) => ({ id: x.id, note: str(x.note) }));
+    if (stops.length < 2) return null;
+    return { stops, intro: str(a.intro) };
+  }
   if (name === 'highlight' && typeof a.selector === 'string' && a.selector.length < 120)
     return { selector: a.selector.slice(0, 120), label: str(a.label).slice(0, 40) };
   return null;

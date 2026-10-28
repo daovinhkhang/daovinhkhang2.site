@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GREETING, QUICK_REPLIES, resolveChip, resolveReply } from './knowledge';
 import { answerLocally, ask, followUp, perform } from './client';
+import { focusStop } from './director';
+import { DEFAULT_ROUTE, TOUR_DWELL, buildStops } from './tour';
+import TourBar from './TourBar';
 
 function Icon({ d, size = 24, stroke = true }) {
   return (
@@ -46,6 +49,8 @@ export default function AssistantWidget() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [narration, setNarration] = useState('');
+  // null = not touring; otherwise the whole walk lives here
+  const [tour, setTour] = useState(null);
   const [messages, setMessages] = useState(() =>
     GREETING.map((text, i) => ({
       id: nextId(),
@@ -61,6 +66,7 @@ export default function AssistantWidget() {
   const timers = useRef(new Set());
   const restoreFocus = useRef(false);
   const alive = useRef(true);
+  const spotRef = useRef(() => {});
 
   useEffect(() => {
     alive.current = true;
@@ -159,6 +165,73 @@ export default function AssistantWidget() {
     return () => clearTimeout(t);
   }, [open, closing, mini]);
 
+  /* ---- guided tour ---------------------------------------------------
+     The drawer closes and the page becomes the presentation. Each stop
+     scrolls, rings its element, and speaks; the walk advances on a timer
+     until the visitor pauses, steps back, or ends it. */
+
+  const startTour = useCallback(
+    (stops) => {
+      setTeaser(false);
+      setClosing(false);
+      setMini(false);
+      setOpen(false); // release the scroll lock: the page must be able to move
+      restoreFocus.current = false;
+      setTour({ stops, index: 0, paused: false });
+    },
+    [],
+  );
+
+  const endTour = useCallback(() => {
+    setTour(null);
+    spotRef.current();
+    spotRef.current = () => {};
+    setClosing(false);
+    setMini(false);
+    setOpen(true);
+  }, []);
+
+  const stepTo = useCallback((next) => {
+    setTour((t) => {
+      if (!t) return t;
+      if (next < 0) return t;
+      if (next >= t.stops.length) return t;
+      return { ...t, index: next };
+    });
+  }, []);
+
+  const nextStop = useCallback(() => {
+    setTour((t) => {
+      if (!t) return t;
+      if (t.index >= t.stops.length - 1) return t; // finish is handled below
+      return { ...t, index: t.index + 1 };
+    });
+  }, []);
+
+  /* move the page whenever the stop changes */
+  useEffect(() => {
+    if (!tour) return undefined;
+    spotRef.current();
+    const stop = tour.stops[tour.index];
+    // let the drawer's exit finish before scrolling, so the move is visible
+    const t = setTimeout(() => {
+      spotRef.current = focusStop(stop) || (() => {});
+    }, 60);
+    return () => clearTimeout(t);
+  }, [tour]);
+
+  /* auto-advance: the guide leads, the visitor can interrupt */
+  useEffect(() => {
+    if (!tour || tour.paused) return undefined;
+    const atEnd = tour.index >= tour.stops.length - 1;
+    if (atEnd) return undefined;
+    const t = setTimeout(() => setTour((cur) => (cur && !cur.paused ? { ...cur, index: cur.index + 1 } : cur)), TOUR_DWELL);
+    return () => clearTimeout(t);
+  }, [tour]);
+
+  /* leaving the page mid-tour should not strand a spotlight */
+  useEffect(() => () => spotRef.current(), []);
+
   /* body scroll lock — released while the drawer is minimised so the page moves */
   useEffect(() => {
     if (!open || mini) return undefined;
@@ -186,6 +259,16 @@ export default function AssistantWidget() {
       if (!alive.current) return;
 
       const calls = result.calls || [];
+
+      // A tour is a whole mode, not a page nudge — handle it before anything else.
+      const tourCall = calls.find((c) => c.name === 'start_tour');
+      if (tourCall) {
+        const stops = buildStops(tourCall.args.stops.map((x) => x.id), Object.fromEntries(tourCall.args.stops.map((x) => [x.id, x.note])));
+        if (tourCall.args.intro) pushBot({ text: tourCall.args.intro });
+        setBusy(false);
+        startTour(stops);
+        return;
+      }
 
       if (!calls.length) {
         pushBot({ text: result.text, chips: result.local ? result.chips : undefined });
@@ -215,12 +298,19 @@ export default function AssistantWidget() {
       pushBot({ text: said || 'There you go — it is on screen now.' });
       setBusy(false);
     },
-    [messages, pushBot],
+    [messages, pushBot, startTour],
   );
 
   const runChip = useCallback(
     (label) => {
       const action = resolveChip(label);
+
+      // Checked before intent routing: a tour is a mode, not a question.
+      if (label === 'Take the tour') {
+        pushBot({ text: 'Let me walk you through it.' });
+        startTour(buildStops(DEFAULT_ROUTE));
+        return;
+      }
 
       if (action?.intent) {
         askAndAnswer(label);
@@ -243,7 +333,7 @@ export default function AssistantWidget() {
 
       askAndAnswer(label);
     },
-    [askAndAnswer, pushBot],
+    [askAndAnswer, pushBot, startTour],
   );
 
   const send = (e) => {
@@ -265,6 +355,26 @@ export default function AssistantWidget() {
     const last = [...messages].reverse().find((m) => m.role === 'bot' && m.chips?.length);
     return last ? last.id : null;
   }, [messages]);
+
+  /* ---- touring: the docent bar replaces the drawer --------------------- */
+
+  if (tour) {
+    return (
+      <TourBar
+        stops={tour.stops}
+        index={tour.index}
+        paused={tour.paused}
+        dwell={TOUR_DWELL}
+        onNext={() => {
+          if (tour.index >= tour.stops.length - 1) endTour();
+          else nextStop();
+        }}
+        onPrev={() => stepTo(tour.index - 1)}
+        onTogglePause={() => setTour((t) => (t ? { ...t, paused: !t.paused } : t))}
+        onEnd={endTour}
+      />
+    );
+  }
 
   /* ---- minimised: a narration bar instead of the drawer ---------------- */
 

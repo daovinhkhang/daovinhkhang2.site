@@ -6,6 +6,7 @@
 ------------------------------------------------------------------- */
 
 export const QUICK_REPLIES = [
+  { label: 'Take the tour', intent: 'tour' },
   { label: 'KAMI for Odoo', intent: 'kami' },
   { label: 'Tasker V2→V5', intent: 'tasker' },
   { label: 'Experience', intent: 'experience' },
