@@ -37,8 +37,9 @@ export const STOPS = {
       'The stack underneath: Python and FastAPI, LangGraph runtimes, MongoDB, Redis and Weaviate for state and retrieval, Langfuse for tracing.',
   },
   metrics: {
-    scroll: '#work',
-    spot: '.cred-strip',
+    // the headline numbers live in the stats band under the hero
+    scroll: '.stats',
+    spot: '.stats-grid',
     title: 'The numbers',
     narration:
       'The numbers he would point to first: retrieval cut from about 30 seconds to under 5, and speech-to-text at CER 0.066 — roughly 60% better than baseline.',
@@ -54,7 +55,8 @@ export const STOPS = {
     scroll: '#education',
     spot: '#education .edu-grid',
     title: 'Education',
-    narration: 'FPT University, AI major — and a teaching assistantship while still studying.',
+    narration:
+      'BSc (Hons) in Computing at Greenwich University, First Class Honours with a 3.7 GPA — plus Best Final Project in Spring 2024.',
   },
   contact: {
     scroll: '#contact',

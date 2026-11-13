@@ -15,6 +15,7 @@ function assistantApi(mode) {
     if (env.UPSTREAM_KEY) process.env.UPSTREAM_KEY = env.UPSTREAM_KEY;
     if (env.UPSTREAM_URL) process.env.UPSTREAM_URL = env.UPSTREAM_URL;
     if (env.UPSTREAM_MODEL) process.env.UPSTREAM_MODEL = env.UPSTREAM_MODEL;
+    if (env.UPSTREAM_REASONING) process.env.UPSTREAM_REASONING = env.UPSTREAM_REASONING;
     return Boolean(env.UPSTREAM_KEY);
   };
 

@@ -10,7 +10,9 @@
 
 const KEY = 'khang.assistant.v1';
 const MAX_TURNS = 10;
-const MAX_CHARS = 360;
+// Long enough to hold a full answer: a restored thread that stops mid-sentence
+// reads as broken.
+const MAX_CHARS = 1200;
 
 const EMPTY = {
   version: 1,
@@ -133,13 +135,13 @@ export function visitorPrompt(mem, viewing) {
   if (style) {
     const lang = LANG_NAME[style.lang] || 'English';
     const bits = [`- Writes in ${lang}`, `register: ${style.register}`];
-    if (style.pronouns.length) bits.push(`uses "${style.pronouns.join('", "')}"`);
+    if (style.pronouns.length) bits.push(`their own pronouns: "${style.pronouns.join('", "')}"`);
     bits.push(style.emoji ? 'uses emoji' : 'no emoji');
     bits.push(`messages average ${style.avgWords} words`);
     if (style.technical) bits.push('comfortable with technical terms');
     lines.push(`${bits.join(' · ')}.`);
     lines.push(
-      `- Write the way they write: mirror those pronouns and that formality, keep your sentences about as long as theirs, and never sound more formal than they do. If they are casual, be casual; if they are formal, be formal.`,
+      `- Write the way they write: match that formality and use the counterpart of their pronouns (they say "mình" → you call them "bạn"), keep your sentences about as long as theirs, and never sound more formal than they do.`,
     );
   }
 

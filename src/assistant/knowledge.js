@@ -86,7 +86,7 @@ const KB = [
   },
   {
     id: 'metrics',
-    anchor: '#top',
+    anchor: '.stats',
     keywords: ['metric', 'number', 'impact', 'result', 'stats', 'achievement', 'proof'],
     answer:
       'Four numbers that summarise the work: Tasker roadmap owned from V2 to V5.0; retrieval latency cut roughly 6× (30s → under 5s); CER 0.066 on Vietnamese ASR; and three KAMI agent surfaces shipped.',
@@ -137,7 +137,8 @@ const CHIP_ACTIONS = {
   'See it in Work': { anchor: '#work' },
   'See work': { anchor: '#work' },
   'See the work': { anchor: '#work' },
-  'See the metrics': { anchor: '#top' },
+  'See the metrics': { anchor: '.stats' },
+  'Read the metrics': { anchor: '.stats' },
   'See experience': { anchor: '#experience' },
   'Jump to experience': { anchor: '#experience' },
   'See capabilities': { anchor: '#capabilities' },

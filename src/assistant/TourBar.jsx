@@ -80,13 +80,13 @@ export default function TourBar({
         </button>
 
         <button type="button" className="tour-pause" onClick={onTogglePause}>
-          {paused ? <Icon d="M8 5v14M16 5v14-14" size={14} /> : <Icon d="M9 5v14M15 5v14" size={14} />}
+          {paused ? <Icon d="M7 4.5v15l12-7.5z" size={14} /> : <Icon d="M9 5v14M15 5v14" size={14} />}
           <span>{paused ? 'Resume' : 'Pause'}</span>
         </button>
 
         <button type="button" className="tour-next" onClick={onNext} aria-label={last ? 'Finish tour' : 'Next stop'}>
           <span>{last ? 'Finish' : 'Next'}</span>
-          <Icon d={last ? 'M5 12h14M13 6l6 6-6 6' : 'M5 12h14M13 6l6 6-6 6'} />
+          <Icon d={last ? 'M5 12.5l4.5 4.5L19 7.5' : 'M5 12h14M13 6l6 6-6 6'} />
         </button>
       </div>
     </section>

@@ -1,169 +1,239 @@
 /**
- * Tool contract shared by the Netlify function (schema sent to the model)
- * and the widget (which executes the calls against real page state).
+ * Tool contract shared by the proxy (schema sent to the model) and the widget
+ * (which executes the calls against the real page).
  *
- * Keeping one source of truth stops the two drifting apart — the model is
- * only ever offered actions the page can genuinely perform.
+ * The model is free to choose *what* to do and in what order — it can chain
+ * several actions in one turn, read the page before answering, and offer its
+ * own next steps. What it cannot do is invent a target: every action resolves
+ * to a landmark that genuinely exists, so freedom never turns into a broken
+ * selector or a hallucinated section.
  */
 
 import { TOUR_IDS } from './tour.js';
 
 export const SYSTEMS = ['kami-pro', 'kami-community', 'kami-medusa', 'tasker', 'stt'];
 export const EXPERIENCES = ['btaskee', 'erax', 'fptis', 'greenwich'];
-export const SECTIONS = [
-  'top',
-  'about',
-  'work',
-  'capabilities',
-  'experience',
-  'education',
-  'contact',
-];
+export const SECTIONS = ['top', 'about', 'work', 'experience', 'capabilities', 'education', 'contact'];
+
+/**
+ * Named places the guide can point at. Resolved at run time, so a landmark
+ * that depends on state (the open system's demo) always means the current one.
+ */
+export const LANDMARKS = {
+  'hero': { sel: '.hero-title', label: 'Opening' },
+  'stats': { sel: '.stats-grid', label: 'Headline numbers' },
+  'profile': { sel: '#about .split-copy', label: 'Profile' },
+  'work-tabs': { sel: '#work .tabs', label: 'Shipped systems' },
+  'system-summary': { sel: '#work .sys-copy', label: 'What it does' },
+  'system-points': { sel: '#work .sys-copy .point-list', label: 'Key points' },
+  'system-stack': { sel: '#work .sys-copy .tags', label: 'Stack' },
+  'system-media': { sel: '#work .sys-media', label: 'Screenshot' },
+  'system-demo': { sel: '#work .video-stack', label: 'Demo video' },
+  'system-shots': { sel: '#work .shot-grid', label: 'Screenshots' },
+  'experience-list': { sel: '#experience .exp-list', label: 'Roles' },
+  'open-role': { sel: '#experience .exp-item.is-open', label: 'This role' },
+  'capabilities': { sel: '#capabilities .cap-grid', label: 'Capabilities' },
+  'method': { sel: '#capabilities .method', label: 'How he ships' },
+  'degree': { sel: '#education .edu-card', label: 'Degree' },
+  'credentials': { sel: '.cred-strip', label: 'Credentials' },
+  'contact': { sel: '#contact .contact-grid', label: 'Contact' },
+  'contact-email': { sel: '#contact a[href^="mailto:"]', label: 'Email' },
+  'contact-phone': { sel: '#contact a[href^="tel:"]', label: 'Phone' },
+  'contact-linkedin': { sel: '#contact a[href*="linkedin.com"]', label: 'LinkedIn' },
+  'contact-github': { sel: '#contact a[href*="github.com"]', label: 'GitHub' },
+  'odoo-listing': { sel: '#contact a[href*="apps.odoo.com"]', label: 'Odoo Apps Store' },
+};
+export const LANDMARK_IDS = Object.keys(LANDMARKS);
+
+/** Places the pointer may press: the site's own contact links. */
+export const PRESSABLE = ['contact-email', 'contact-phone', 'contact-linkedin', 'contact-github', 'odoo-listing'];
+
+
+/** Things a reply button may open. The visitor's own click opens them. */
+export const LINKS = {
+  email: 'mailto:daovinhkhang0834@gmail.com',
+  phone: 'tel:+84834684568',
+  linkedin: 'https://www.linkedin.com/in/dao-vinh-khang-32748023a/',
+  github: 'https://github.com/daovinhkhang',
+  odoo: 'https://apps.odoo.com/apps/modules/19.0/kami_agent',
+};
+export const LINK_IDS = Object.keys(LINKS);
+
+const SAY = {
+  type: 'string',
+  description:
+    'A few words shown to the visitor as this step happens, in their language — like a guide saying "Let me open KAMI Pro".',
+};
+
+const fn = (name, description, properties, required) => ({
+  type: 'function',
+  function: { name, description, parameters: { type: 'object', properties, required } },
+});
 
 export const TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'show_system',
-      description:
-        'Open a shipped system in the Work section and bring it into view. Use when the user asks what something is, how it works, or wants to see a project.',
-      parameters: {
-        type: 'object',
-        properties: {
-          system: {
-            type: 'string',
-            enum: SYSTEMS,
-            description:
-              'kami-pro = KAMI AI Agent Pro for Odoo. kami-community = KAMI Community Edition. kami-medusa = KAMI commerce/Medusa agent. tasker = Tasker V2-V5 platform. stt = Vietnamese speech-to-text.',
-          },
-          reason: {
-            type: 'string',
-            description: 'One short sentence, shown to the user, on why this is worth looking at.',
-          },
-        },
-        required: ['system', 'reason'],
+  fn(
+    'read_page',
+    'Read the live text of part of the page. Use it whenever you need more detail than CONTEXT has (bullet points of a role, the exact wording of a system, what a section says). The visitor does not see this; it only informs you.',
+    {
+      target: {
+        type: 'string',
+        enum: [...SECTIONS, ...LANDMARK_IDS, ...SYSTEMS.map((s) => `system:${s}`), ...EXPERIENCES.map((e) => `role:${e}`)],
       },
     },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'open_experience',
-      description:
-        'Expand a role in the Experience section and scroll to it. Use for questions about employment, employers, or what he did at a company.',
-      parameters: {
-        type: 'object',
-        properties: {
-          company: { type: 'string', enum: EXPERIENCES },
-          reason: { type: 'string', description: 'One short sentence shown to the user.' },
-        },
-        required: ['company', 'reason'],
+    ['target'],
+  ),
+  fn(
+    'navigate',
+    'Scroll the page to a section or landmark. The chat stays visible beside the page, so moving is cheap — do it whenever seeing it helps.',
+    { to: { type: 'string', enum: [...SECTIONS, ...LANDMARK_IDS] }, say: SAY },
+    ['to'],
+  ),
+  fn(
+    'show_system',
+    'Open one shipped system in the Work section and bring it into view.',
+    {
+      system: {
+        type: 'string',
+        enum: SYSTEMS,
+        description:
+          'kami-pro = KAMI AI Agent Pro for Odoo. kami-community = open-source edition for Odoo 19. kami-medusa = Medusa commerce agent. tasker = Tasker V2-V5 at bTaskee. stt = Vietnamese speech-to-text.',
       },
+      say: SAY,
     },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'go_to_section',
-      description:
-        'Scroll to a section. Use for navigation requests ("show me your contact", "take me to education").',
-      parameters: {
-        type: 'object',
-        properties: {
-          section: { type: 'string', enum: SECTIONS },
-          reason: { type: 'string', description: 'One short sentence shown to the user.' },
-        },
-        required: ['section', 'reason'],
-      },
+    ['system'],
+  ),
+  fn(
+    'open_experience',
+    'Expand one role in the Experience section and bring it into view.',
+    { company: { type: 'string', enum: EXPERIENCES }, say: SAY },
+    ['company'],
+  ),
+  fn(
+    'point_at',
+    'Move your pointer to one landmark, ring it, and pin a short note next to it — the way a guide points while talking. Chain several to walk through details.',
+    {
+      target: { type: 'string', enum: LANDMARK_IDS },
+      note: { type: 'string', description: 'One short sentence pinned beside it, in the visitor\'s language.' },
     },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'start_tour',
-      description:
-        'Give the user a guided tour of the whole site, walking them stop to stop on their behalf. Use when they ask for a tour, an overview, a walkthrough, "show me around", or want the site explained end to end. You choose the route and the words.',
-      parameters: {
-        type: 'object',
-        properties: {
-          intro: { type: 'string', description: 'One short sentence you say before the first stop.' },
-          stops: {
-            type: 'array',
-            minItems: 2,
-            maxItems: 6,
-            description:
-              'The route, in the order that best fits what this visitor cares about. Pick 3-5 stops.',
-            items: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  enum: TOUR_IDS,
-                  description:
-                    'hero = opening. about = the short version. work = shipped systems. capabilities = the stack. metrics = the headline numbers. experience = employers. education = study. contact = how to reach him.',
-                },
-                note: {
-                  type: 'string',
-                  description: 'One or two sentences to say at this stop. Your own words.',
-                },
-              },
-              required: ['id', 'note'],
-            },
+    ['target', 'note'],
+  ),
+  fn(
+    'play_demo',
+    'Open a system and play its demo video (muted). Only kami-pro, kami-community and kami-medusa have demos.',
+    { system: { type: 'string', enum: ['kami-pro', 'kami-community', 'kami-medusa'] }, say: SAY },
+    ['system'],
+  ),
+  fn(
+    'press',
+    "Move the pointer to one of Khang's contact links or the Odoo listing and press it. Use when the visitor asks you to open, click or go to a link. Email and phone open the visitor's own mail or call app; a web link may be blocked by the browser, so also offer it as a reply button.",
+    {
+      target: { type: 'string', enum: PRESSABLE },
+      say: SAY,
+    },
+    ['target'],
+  ),
+  fn(
+    'copy_contact',
+    "Copy Khang's email or phone number to the visitor's clipboard.",
+    { what: { type: 'string', enum: ['email', 'phone'] }, say: SAY },
+    ['what'],
+  ),
+  fn(
+    'suggest_replies',
+    'Offer 2-4 tappable next steps under your answer, written in the visitor\'s language. A reply is either a follow-up question they can send, or a link they can open (email, phone, linkedin, github, odoo). Call this at the end of most turns.',
+    {
+      replies: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 4,
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'At most 32 characters.' },
+            ask: { type: 'string', description: 'The message sent when tapped. Omit for a link.' },
+            link: { type: 'string', enum: LINK_IDS },
           },
+          required: ['label'],
         },
-        required: ['stops', 'intro'],
       },
     },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'highlight',
-      description:
-        'Draw a temporary spotlight ring around a single element so the user can spot one detail you just described. Use sparingly, after scrolling somewhere.',
-      parameters: {
-        type: 'object',
-        properties: {
-          selector: {
-            type: 'string',
-            description:
-              'A short CSS selector for a stable landmark, e.g. "#work .system-tabs", "#experience", "#contact a[href^=\'mailto:\']". Prefer ids and classes over deep paths.',
+    ['replies'],
+  ),
+  fn(
+    'start_tour',
+    'Hand the page over to a guided tour that walks stop to stop on its own. Use when they want a tour, an overview, or "show me around". You choose the route and the words.',
+    {
+      intro: { type: 'string', description: 'One short sentence before the first stop.' },
+      stops: {
+        type: 'array',
+        minItems: 2,
+        maxItems: 6,
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', enum: TOUR_IDS },
+            note: { type: 'string', description: 'One or two sentences for this stop, in your own words.' },
           },
-          label: {
-            type: 'string',
-            description: 'A few words to show next to the ring, at most 40 characters.',
-          },
+          required: ['id', 'note'],
         },
-        required: ['selector', 'label'],
       },
     },
-  },
+    ['stops', 'intro'],
+  ),
 ];
 
 export const TOOL_NAMES = TOOLS.map((t) => t.function.name);
 
-/** Reject anything the model invents that the page cannot actually do. */
+const READ_TARGETS = new Set(TOOLS[0].function.parameters.properties.target.enum);
+
+/** Reject anything the page cannot actually do; trim everything shown. */
 export function validateCall(name, args) {
   if (!TOOL_NAMES.includes(name)) return null;
   const a = args && typeof args === 'object' ? args : {};
-  if (name === 'show_system' && SYSTEMS.includes(a.system)) return { system: a.system, reason: str(a.reason) };
-  if (name === 'open_experience' && EXPERIENCES.includes(a.company))
-    return { company: a.company, reason: str(a.reason) };
-  if (name === 'go_to_section' && SECTIONS.includes(a.section)) return { section: a.section, reason: str(a.reason) };
-  if (name === 'start_tour') {
-    if (!Array.isArray(a.stops)) return null;
-    const stops = a.stops
-      .filter((x) => x && TOUR_IDS.includes(x.id))
-      .slice(0, 6)
-      .map((x) => ({ id: x.id, note: str(x.note) }));
-    if (stops.length < 2) return null;
-    return { stops, intro: str(a.intro) };
+  const say = str(a.say, 120);
+
+  switch (name) {
+    case 'read_page':
+      return READ_TARGETS.has(a.target) ? { target: a.target } : null;
+    case 'navigate':
+      return SECTIONS.includes(a.to) || LANDMARKS[a.to] ? { to: a.to, say } : null;
+    case 'show_system':
+      return SYSTEMS.includes(a.system) ? { system: a.system, say } : null;
+    case 'open_experience':
+      return EXPERIENCES.includes(a.company) ? { company: a.company, say } : null;
+    case 'point_at':
+      return LANDMARKS[a.target] ? { target: a.target, note: str(a.note, 160) } : null;
+    case 'play_demo':
+      return ['kami-pro', 'kami-community', 'kami-medusa'].includes(a.system) ? { system: a.system, say } : null;
+    case 'press':
+      return PRESSABLE.includes(a.target) ? { target: a.target, say } : null;
+    case 'copy_contact':
+      return a.what === 'email' || a.what === 'phone' ? { what: a.what, say } : null;
+    case 'suggest_replies': {
+      if (!Array.isArray(a.replies)) return null;
+      const replies = a.replies
+        .map((r) => ({
+          label: str(r?.label, 32),
+          ask: str(r?.ask, 200),
+          link: LINK_IDS.includes(r?.link) ? r.link : '',
+        }))
+        .filter((r) => r.label && (r.ask || r.link))
+        .slice(0, 4);
+      return replies.length ? { replies } : null;
+    }
+    case 'start_tour': {
+      if (!Array.isArray(a.stops)) return null;
+      const stops = a.stops
+        .filter((x) => x && TOUR_IDS.includes(x.id))
+        .slice(0, 6)
+        .map((x) => ({ id: x.id, note: str(x.note, 240) }));
+      return stops.length >= 2 ? { stops, intro: str(a.intro, 200) } : null;
+    }
+    default:
+      return null;
   }
-  if (name === 'highlight' && typeof a.selector === 'string' && a.selector.length < 120)
-    return { selector: a.selector.slice(0, 120), label: str(a.label).slice(0, 40) };
-  return null;
 }
 
-function str(v) {
-  return typeof v === 'string' ? v.slice(0, 160) : '';
+function str(v, max = 160) {
+  return typeof v === 'string' ? v.trim().slice(0, max) : '';
 }
