@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AssistantWidget from './assistant/AssistantWidget';
+import ContactIntake from './ContactIntake';
+import { openLinkWindow } from './openLink';
 import {
   CAPABILITIES,
   CREDENTIALS,
+  EDUCATION_INFO,
   EXPERIENCES,
   GALLERY,
   METHOD,
   NAV,
   PROFILE,
+  PUBLICATION,
   STATS,
   SYSTEMS,
   TICKER,
@@ -151,28 +155,6 @@ function SectionHead({ index, title, lead, id }) {
         {title}
       </h2>
       {lead ? <p className="section-lead">{lead}</p> : null}
-    </div>
-  );
-}
-
-function Sticker() {
-  return (
-    <div className="hero-sticker" aria-hidden>
-      <svg className="hero-sticker-text" viewBox="0 0 112 112">
-        <defs>
-          <path id="sticker-path" d="M56,56 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" />
-        </defs>
-        <text>
-          <textPath href="#sticker-path" startOffset="0%">
-            Always building · Always shipping ·
-          </textPath>
-        </text>
-      </svg>
-      <span className="hero-sticker-core">
-        EST
-        <br />
-        2026
-      </span>
     </div>
   );
 }
@@ -444,9 +426,20 @@ export default function App() {
     };
     window.addEventListener('ai:show-system', onSystem);
     window.addEventListener('ai:open-experience', onExperience);
+    const onDocClick = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = e.target?.closest?.('a[target="_blank"][href]');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href') || '';
+      if (!/^https?:/i.test(href)) return;
+      e.preventDefault();
+      openLinkWindow(href);
+    };
+    document.addEventListener('click', onDocClick);
     return () => {
       window.removeEventListener('ai:show-system', onSystem);
       window.removeEventListener('ai:open-experience', onExperience);
+      document.removeEventListener('click', onDocClick);
     };
   }, []);
 
@@ -470,13 +463,8 @@ export default function App() {
               <div className="hero-col">
             <div className="hero-head">
               <div className="hero-top reveal">
-                <span className="hero-badge">
-                  <span className="status-dot" aria-hidden />
-                  Available for production AI work
-                </span>
                 <span className="eyebrow">Ho Chi Minh City · Vietnam</span>
               </div>
-              <Sticker />
             </div>
 
             <h1 className="hero-title" id="hero-title">
@@ -492,8 +480,9 @@ export default function App() {
 
             <div className="hero-lede reveal" style={{ '--d': '220ms' }}>
               <p className="hero-sub">
-                I design and ship <strong>production AI agents and backends</strong> — governed, observable systems
-                that run inside real business platforms. From RAG runtimes to ERP and commerce agents.
+                I engineer reliable, governed <strong>production AI agents and backends</strong> — specializing in
+                latency reduction, multi-agent orchestration, deterministic workflow enforcement, and model fine-tuning
+                across enterprise platforms (Odoo, Medusa) and consumer apps.
               </p>
               <div className="hero-actions">
                 <a className="btn btn-primary" href="#work">
@@ -586,12 +575,30 @@ export default function App() {
 
             <div className="split reveal">
               <div className="split-media">
+                <div className="split-media-head">
+                  <span className="split-media-kicker">Governance Preview · KAMI Pro</span>
+                  <span className="split-media-badge">Approval Gate</span>
+                </div>
                 <Stage
                   src="/kami/pro/screenshot_approvals.png"
                   alt="Human approval queue gating an agent write"
-                  tone="lime"
-                  caption="Approval queue — a human gates every irreversible action"
+                  tone="blue"
+                  caption="Approval queue — human review before every state mutation"
                 />
+                <div className="split-specs" aria-label="Production guardrails">
+                  <div className="split-spec">
+                    <span className="split-spec-k">01 · ACLs</span>
+                    <span className="split-spec-v">Signed-in user scope</span>
+                  </div>
+                  <div className="split-spec">
+                    <span className="split-spec-k">02 · Diffs</span>
+                    <span className="split-spec-v">Dry-run &amp; rollback</span>
+                  </div>
+                  <div className="split-spec">
+                    <span className="split-spec-k">03 · Gates</span>
+                    <span className="split-spec-v">TURN_FACTS evidence</span>
+                  </div>
+                </div>
               </div>
               <div className="split-copy">
                 <ul className="profile-lines">
@@ -600,7 +607,7 @@ export default function App() {
                   ))}
                 </ul>
                 <div className="aside-tags">
-                  {['Evals', 'Canary rollout', 'Observability', 'Cost control'].map((t) => (
+                  {['TURN_FACTS', 'Evals', 'Canary rollout', 'Observability', 'Context compaction'].map((t) => (
                     <span className="system-badge" data-tone="beige" key={t}>
                       {t}
                     </span>
@@ -717,41 +724,61 @@ export default function App() {
           </div>
         </section>
 
-        {/* ================= 05 EDUCATION + credentials strip ================= */}
+        {/* ================= 05 EDUCATION + PUBLICATION + CREDENTIALS ================= */}
         <section id="education" className="section" aria-labelledby="edu-title">
           <div className="container">
-            <SectionHead index="05 — Education" id="edu-title" title={<>Credentials.</>} />
+            <SectionHead index="05 — Education & Research" id="edu-title" title={<>Credentials &amp; Research.</>} />
 
             <div className="edu-grid">
               <article className="edu-card reveal">
-                <p className="cap-num">Degree</p>
-                <h3>Greenwich University</h3>
-                <p className="edu-line">BSc (Hons) in Computing · 2020 – 2024</p>
-                <p className="edu-line">First Class Honours · GPA 3.7 / 4.0</p>
+                <p className="cap-num">Degree · {EDUCATION_INFO.period}</p>
+                <h3>{EDUCATION_INFO.school}</h3>
+                <p className="edu-line">{EDUCATION_INFO.degree}</p>
+                <p className="edu-line">Cumulative GPA: {EDUCATION_INFO.gpa}</p>
                 <ul className="plain-list">
-                  <li>Certificate of Merit (RVR)</li>
-                  <li>Best Final Project (Spring 2024)</li>
+                  {EDUCATION_INFO.awards.map((award) => (
+                    <li key={award}>{award}</li>
+                  ))}
                 </ul>
               </article>
-              <article className="edu-card reveal" style={{ '--d': '90ms' }}>
+
+              <article className="edu-card edu-card-pub reveal" style={{ '--d': '70ms' }}>
+                <p className="cap-num">Publication · {PUBLICATION.year}</p>
+                <h3>SSRN Research Preprint</h3>
+                <p className="edu-pub-title">“{PUBLICATION.title}”</p>
+                <p className="edu-line">{PUBLICATION.summary}</p>
+                <a className="project-link" href={PUBLICATION.href} target="_blank" rel="noreferrer">
+                  SSRN Paper No. {PUBLICATION.paperNo}
+                  <span aria-hidden>↗</span>
+                </a>
+              </article>
+
+              <article className="edu-card reveal" style={{ '--d': '140ms' }}>
                 <p className="cap-num">Commitment</p>
                 <h3>How I ship</h3>
                 <ul className="plain-list">
-                  <li>Production systems over demos</li>
-                  <li>Governed agents with auditability</li>
-                  <li>Latency, retrieval, and observability at scale</li>
-                  <li>Architecture → deploy → optimize → scale</li>
+                  <li>Governed AI systems over prototype demos</li>
+                  <li>Deterministic TURN_FACTS &amp; ACL enforcement</li>
+                  <li>RAG latency, context compaction &amp; serving speed</li>
+                  <li>Golden-trace E2E gates &amp; canary rollouts</li>
                 </ul>
               </article>
             </div>
 
             <div className="cred-strip reveal">
-              {CREDENTIALS.map((c) => (
-                <div className="cred" key={c.k}>
-                  <p className="cred-k">{c.k}</p>
-                  <p className="cred-v">{c.v}</p>
-                </div>
-              ))}
+              {CREDENTIALS.map((c) =>
+                c.href ? (
+                  <a className="cred cred-link" href={c.href} target="_blank" rel="noreferrer" key={c.k}>
+                    <p className="cred-k">{c.k}</p>
+                    <p className="cred-v">{c.v}</p>
+                  </a>
+                ) : (
+                  <div className="cred" key={c.k}>
+                    <p className="cred-k">{c.k}</p>
+                    <p className="cred-v">{c.v}</p>
+                  </div>
+                ),
+              )}
             </div>
           </div>
         </section>
@@ -767,47 +794,67 @@ export default function App() {
                   Let&apos;s <em>build.</em>
                 </>
               }
-              lead="Open to production AI / backend collaborations and serious product work."
+              lead="Send a scoped brief with real-time AI guidance, or reach Dao Vinh Khang directly."
             />
-            <div className="contact-grid">
-              <a className="contact-item reveal" href="mailto:daovinhkhang0834@gmail.com">
-                <span className="contact-label">Email</span>
-                <span className="contact-value">daovinhkhang0834@gmail.com</span>
-              </a>
-              <a className="contact-item reveal" href="tel:+84834684568" style={{ '--d': '50ms' }}>
-                <span className="contact-label">Phone</span>
-                <span className="contact-value">+84 834 684 568</span>
-              </a>
-              <a
-                className="contact-item reveal"
-                href="https://www.linkedin.com/in/dao-vinh-khang-32748023a/"
-                target="_blank"
-                rel="noreferrer"
-                style={{ '--d': '100ms' }}
-              >
-                <span className="contact-label">LinkedIn</span>
-                <span className="contact-value">Dao Vinh Khang ↗</span>
-              </a>
-              <a
-                className="contact-item reveal"
-                href="https://github.com/daovinhkhang"
-                target="_blank"
-                rel="noreferrer"
-                style={{ '--d': '150ms' }}
-              >
-                <span className="contact-label">GitHub</span>
-                <span className="contact-value">@daovinhkhang ↗</span>
-              </a>
-              <a
-                className="contact-item reveal"
-                href="https://apps.odoo.com/apps/modules/19.0/kami_agent"
-                target="_blank"
-                rel="noreferrer"
-                style={{ '--d': '200ms' }}
-              >
-                <span className="contact-label">KAMI Pro</span>
-                <span className="contact-value">Odoo Apps Store ↗</span>
-              </a>
+            <div className="contact-split">
+              <ContactIntake />
+              <div className="contact-aside">
+                <p className="contact-aside-note">
+                  Direct channels · Ho Chi Minh City (GMT+7). Typical response within 24h.
+                </p>
+                <div className="contact-grid">
+                  <a className="contact-item reveal" href="mailto:daovinhkhang0834@gmail.com">
+                    <span className="contact-label">Email</span>
+                    <span className="contact-value">daovinhkhang0834@gmail.com</span>
+                  </a>
+                  <a className="contact-item reveal" href="tel:+84834684568" style={{ '--d': '50ms' }}>
+                    <span className="contact-label">Phone</span>
+                    <span className="contact-value">+84 834 684 568</span>
+                  </a>
+                  <a
+                    className="contact-item reveal"
+                    href="https://www.linkedin.com/in/dao-vinh-khang-32748023a/"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ '--d': '100ms' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openLinkWindow('https://www.linkedin.com/in/dao-vinh-khang-32748023a/');
+                    }}
+                  >
+                    <span className="contact-label">LinkedIn</span>
+                    <span className="contact-value">Dao Vinh Khang ↗</span>
+                  </a>
+                  <a
+                    className="contact-item reveal"
+                    href="https://github.com/daovinhkhang"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ '--d': '150ms' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openLinkWindow('https://github.com/daovinhkhang');
+                    }}
+                  >
+                    <span className="contact-label">GitHub</span>
+                    <span className="contact-value">@daovinhkhang ↗</span>
+                  </a>
+                  <a
+                    className="contact-item reveal"
+                    href="https://apps.odoo.com/apps/modules/19.0/kami_agent"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ '--d': '200ms' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openLinkWindow('https://apps.odoo.com/apps/modules/19.0/kami_agent');
+                    }}
+                  >
+                    <span className="contact-label">KAMI Pro</span>
+                    <span className="contact-value">Odoo Apps Store ↗</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>

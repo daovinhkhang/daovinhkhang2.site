@@ -12,20 +12,34 @@ import react from '@vitejs/plugin-react';
 function assistantApi(mode) {
   const applyEnv = () => {
     const env = loadEnv(mode, process.cwd(), '');
-    if (env.UPSTREAM_KEY) process.env.UPSTREAM_KEY = env.UPSTREAM_KEY;
-    if (env.UPSTREAM_URL) process.env.UPSTREAM_URL = env.UPSTREAM_URL;
-    if (env.UPSTREAM_MODEL) process.env.UPSTREAM_MODEL = env.UPSTREAM_MODEL;
-    if (env.UPSTREAM_REASONING) process.env.UPSTREAM_REASONING = env.UPSTREAM_REASONING;
+    for (const k of [
+      'UPSTREAM_KEY',
+      'UPSTREAM_URL',
+      'UPSTREAM_MODEL',
+      'UPSTREAM_REASONING',
+      'CONTACT_WEBHOOK_URL',
+      'TELEGRAM_BOT_TOKEN',
+      'TELEGRAM_CHAT_ID',
+      'SMTP_HOST',
+      'SMTP_PORT',
+      'SMTP_USER',
+      'SMTP_PASS',
+      'CONTACT_TO_EMAIL',
+    ]) {
+      if (env[k]) process.env[k] = env[k];
+    }
     return Boolean(env.UPSTREAM_KEY);
   };
 
   let announced = false;
 
   const middleware = async (req, res, next) => {
-    if (!req.url?.startsWith('/api/chat')) return next();
+    const isChat = req.url?.startsWith('/api/chat');
+    const isContact = req.url?.startsWith('/api/contact');
+    if (!isChat && !isContact) return next();
 
     const hasKey = applyEnv();
-    if (!announced) {
+    if (isChat && !announced) {
       announced = true;
       // Loud enough that a missing key is never a silent mystery.
       console.log(
@@ -45,7 +59,8 @@ function assistantApi(mode) {
     for await (const chunk of req) body += chunk;
 
     try {
-      const { handler } = await import('./netlify/functions/chat.mjs');
+      const targetMod = isContact ? './netlify/functions/contact.mjs' : './netlify/functions/chat.mjs';
+      const { handler } = await import(targetMod);
       const out = await handler({ httpMethod: 'POST', body, headers: req.headers });
       res.statusCode = out.statusCode;
       for (const [k, v] of Object.entries(out.headers || {})) res.setHeader(k, v);

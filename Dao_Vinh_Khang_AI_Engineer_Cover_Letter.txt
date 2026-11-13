@@ -1,0 +1,1 @@
+AI Engineer building production LLM agents, RAG, and multi-agent runtimes—not demos. At bTaskee I own Tasker V2–V5 (LangGraph + native runtime, AI Mart, evals/rollout). Previously EraX/Gtel: Odoo agents, Vietnamese Whisper ASR (CER 0.066/WER 0.107). Built KAMI AI for Odoo (Apps Store) & Medusa. Portfolio: daovinhkhang.site

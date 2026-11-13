@@ -32,6 +32,14 @@ const LINES = {
     play_demo: (t) => [`Mình bật demo ${t} cho bạn xem…`, `Đợi mình mở video ${t}…`],
     copy_contact: () => ['Để mình copy cho bạn…'],
     press: (t) => [`Mình bấm vào ${t} cho bạn nè…`, `Để mình mở ${t} nhé…`],
+    move_chat: () => ['Để mình kéo hộp chat sang chỗ thoáng hơn cho bạn dễ nhìn…'],
+    fill_contact: () => ['Để mình qua form liên hệ hướng dẫn và điền phụ bạn nhé…'],
+    search_site: () => ['Để mình tìm trên toàn bộ hồ sơ…'],
+    run_workflow: () => ['Để mình dẫn bạn đi một mạch luôn…'],
+    render_view: () => ['Đợi mình xếp lại cho dễ nhìn…'],
+    execute_code: () => ['Đang chạy tính toán riêng cho bạn…'],
+    create_tool: (t) => [`Đang tạo công cụ ${t || 'mới'} cho bạn…`],
+    run_custom_tool: (t) => [`Đang chạy công cụ ${t || 'này'}…`],
     // after an action the guide may act again or answer — promise neither
     after: ['Đó, bạn xem nhé…', 'Bạn nhìn thử chỗ đó nha…', 'Rồi, đợi mình chút…'],
     done: {
@@ -42,6 +50,13 @@ const LINES = {
       play_demo: (t) => `Đang phát demo ${t}`,
       copy_contact: () => 'Đã copy cho bạn',
       press: (t) => `Đã bấm ${t}`,
+      move_chat: () => 'Đã kéo hộp chat qua chỗ thoáng hơn',
+      fill_contact: () => 'Đã hỗ trợ điền và giải thích ở form liên hệ',
+      run_workflow: () => 'Đã đi xong các bước',
+      render_view: () => 'Đã dựng bảng tổng hợp',
+      execute_code: () => 'Đã chạy xong trong sandbox',
+      create_tool: (t) => `Đã tạo công cụ ${t || 'mới'}`,
+      run_custom_tool: (t) => `Đã chạy ${t || 'công cụ'}`,
     },
   },
   'vi-formal': {
@@ -56,6 +71,14 @@ const LINES = {
     play_demo: (t) => [`Em bật demo ${t} cho anh/chị xem ạ…`],
     copy_contact: () => ['Để em copy giúp anh/chị ạ…'],
     press: (t) => [`Em bấm vào ${t} giúp anh/chị ạ…`],
+    move_chat: () => ['Để em kéo hộp chat sang bên cho anh/chị dễ nhìn ạ…'],
+    fill_contact: () => ['Để em dẫn anh/chị tới form liên hệ, hướng dẫn và điền nháp giúp ạ…'],
+    search_site: () => ['Để em tìm lại toàn bộ hồ sơ ạ…'],
+    run_workflow: () => ['Để em dẫn anh/chị xem liền mạch ạ…'],
+    render_view: () => ['Để em xếp bảng tóm tắt cho dễ xem ạ…'],
+    execute_code: () => ['Em đang chạy tính toán riêng cho anh/chị ạ…'],
+    create_tool: (t) => [`Em đang tạo công cụ ${t || 'mới'} giúp anh/chị ạ…`],
+    run_custom_tool: (t) => [`Em đang chạy công cụ ${t || 'này'} ạ…`],
     after: ['Dạ, anh/chị xem chỗ đó ạ…', 'Anh/chị đợi em chút ạ…'],
     done: {
       navigate: (t) => `Đã đưa anh/chị tới ${t}`,
@@ -65,6 +88,13 @@ const LINES = {
       play_demo: (t) => `Đang phát demo ${t}`,
       copy_contact: () => 'Đã copy giúp anh/chị',
       press: (t) => `Đã bấm ${t}`,
+      move_chat: () => 'Đã kéo hộp chat sang chỗ thoáng hơn',
+      fill_contact: () => 'Đã hỗ trợ điền và giải thích ở form liên hệ',
+      run_workflow: () => 'Đã thực hiện xong các bước',
+      render_view: () => 'Đã dựng bảng tổng hợp',
+      execute_code: () => 'Đã chạy xong trong sandbox',
+      create_tool: (t) => `Đã tạo công cụ ${t || 'mới'}`,
+      run_custom_tool: (t) => `Đã chạy ${t || 'công cụ'}`,
     },
   },
   en: {
@@ -79,6 +109,14 @@ const LINES = {
     play_demo: (t) => [`Starting the ${t} demo…`],
     copy_contact: () => ['Copying that for you…'],
     press: (t) => [`Clicking ${t} for you…`, `Opening ${t}…`],
+    move_chat: () => ['Moving the chat box out of your way…'],
+    fill_contact: () => ['Guiding you through the contact form…'],
+    search_site: () => ['Searching across the full CV and portfolio…'],
+    run_workflow: () => ['Walking through those steps…'],
+    render_view: () => ['Putting together a clean view…'],
+    execute_code: () => ['Running that in the isolated sandbox…'],
+    create_tool: (t) => [`Building ${t || 'a custom tool'} for you…`],
+    run_custom_tool: (t) => [`Running ${t || 'the custom tool'}…`],
     after: ['There you go…', 'Have a look at that…', 'One more moment…'],
     done: {
       navigate: (t) => `Took you to ${t}`,
@@ -88,6 +126,13 @@ const LINES = {
       play_demo: (t) => `Playing the ${t} demo`,
       copy_contact: () => 'Copied for you',
       press: (t) => `Pressed ${t}`,
+      move_chat: () => 'Moved chat aside',
+      fill_contact: () => 'Guided contact form',
+      run_workflow: () => 'Completed workflow',
+      render_view: () => 'Rendered structured view',
+      execute_code: () => 'Executed in sandbox',
+      create_tool: (t) => `Created tool ${t || ''}`.trim(),
+      run_custom_tool: (t) => `Ran ${t || 'custom tool'}`,
     },
   },
 };
@@ -118,6 +163,13 @@ Object.assign(PLACES_VI, {
   method: 'cách Khang triển khai',
   degree: 'bằng cấp',
   credentials: 'thành tích',
+  'contact-form': 'biểu mẫu liên hệ',
+  'contact-name': 'ô họ tên',
+  'contact-email-input': 'ô email',
+  'contact-topic': 'chủ đề liên hệ',
+  'contact-company': 'công ty hoặc dự án',
+  'contact-message': 'nội dung trao đổi',
+  'contact-submit': 'nút gửi',
   'contact-email': 'email',
   'contact-phone': 'số điện thoại',
   'contact-linkedin': 'LinkedIn',
@@ -145,6 +197,8 @@ export function voiceFor(style) {
 function subject(voice, name, args, names) {
   if (args?.system) return names.system(args.system);
   if (args?.company) return names.company(args.company);
+  if (args?.name) return args.name;
+  if (args?.purpose) return args.purpose;
   const place = args?.to || args?.target;
   if (!place) return '';
   const table = voice === 'en' ? PLACES_EN : PLACES_VI;

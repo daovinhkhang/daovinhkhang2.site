@@ -14,17 +14,17 @@ export const NAV = [
 ];
 
 export const PROFILE = [
-  'Build production AI systems — not demo-only prototypes.',
-  'Focus: LLM systems, multi-agent runtimes, RAG architecture, workflow orchestration, backend platforms.',
-  'Own the full lifecycle: architecture → deployment → optimization → scaling.',
-  'Strong research orientation with continuous system improvement.',
+  'Engineer reliable, governed production AI systems over prototype demos across enterprise platforms and consumer apps.',
+  'Specialize in LLM agent runtimes, RAG latency reduction, multi-agent orchestration, deterministic workflow enforcement, and model fine-tuning.',
+  'Own the full lifecycle end-to-end: architecture → deployment → optimization → scaling.',
+  'Deliver across Odoo 17–19, Medusa 2.0, and bTaskee multi-country AI platforms (VN, TH, ID, MY).',
 ];
 
 export const STATS = [
-  { value: 'V2 → V5.0', label: 'Tasker roadmap owned at bTaskee' },
-  { value: '~6×', label: 'Retrieval latency cut (30s → <5s)' },
-  { value: 'CER 0.066', label: 'Vietnamese ASR — EraX-WoW-medium' },
-  { value: '3', label: 'KAMI agent surfaces shipped' },
+  { value: 'V2 → V5.0', label: 'BeeTa & Kai fleet · 4 markets (VN/TH/ID/MY)' },
+  { value: '~6×', label: 'Retrieval latency cut (~30s → <5s)' },
+  { value: 'CER 0.066', label: 'Vietnamese ASR · ~870h (~60% lower error)' },
+  { value: '3', label: 'KAMI agent surfaces shipped (Odoo & Medusa)' },
 ];
 
 export const SYSTEMS = [
@@ -33,19 +33,19 @@ export const SYSTEMS = [
     year: '2026',
     name: 'KAMI AI Agent Pro for Odoo',
     short: 'KAMI Pro',
-    tag: 'Odoo 17–19 · Python · Production',
+    tag: 'Odoo 17–19 · Commercial Enterprise Product',
     badge: 'Flagship',
     tone: 'lime',
     hero: '/kami/pro/screenshot_dashboard.png',
     summary:
-      'Native Odoo AI work layer. Users describe outcomes in plain language; KAMI discovers apps, models, views, and permissions, then finds, creates, updates, and reviews real records under signed-in ACLs — with Assist, Copilot, Autopilot, approval gates, audit ledger, undo, workflows, and sub-agents.',
+      'Native enterprise AI work layer for Odoo 17–19 that interprets plain-language business intents, auto-discovers apps, models, views, and permissions, and performs governed operations strictly adhering to signed-in user ACLs.',
     points: [
-      'Action Layer + Quick Chat on every backend screen',
-      'Governed CRUD with dry-run diffs and mutation budgets',
-      'Audit ledger + one-click undo',
-      'Multi-provider routing (DeepSeek default + OpenAI, Anthropic, Gemini, …)',
+      'Action Layer + Quick Chat with Assist, Copilot & Autopilot modes',
+      'Mutation budgets, dry-run diffs, and immutable audit ledgers',
+      'Approval gates & one-click rollback across business records',
+      'Multi-provider routing (DeepSeek V4 default, OpenAI, Anthropic, Gemini)',
     ],
-    stack: ['Odoo 17/18/19', 'Python', 'OWL', 'DeepSeek V4', 'Telegram'],
+    stack: ['Python', 'Odoo 17–19', 'OWL Framework', 'DeepSeek V4', 'Telegram API'],
     link: { href: 'https://apps.odoo.com/apps/modules/19.0/kami_agent', label: 'Odoo Apps Store' },
     videos: [
       {
@@ -77,19 +77,19 @@ export const SYSTEMS = [
     year: '2026',
     name: 'KAMI AI Agent Community',
     short: 'KAMI Community',
-    tag: 'Odoo 19 · Python · Open source',
+    tag: 'Odoo 19 · Open-Source Autonomous Agent',
     badge: 'Open source',
     tone: 'mint',
     hero: '/kami/community/kami-odoo-hero.png',
     summary:
-      'Community edition native to Odoo 19: chat with business data, controlled CRUD tools, policy engine, approval dry-runs, immutable audit ledger, and reversible write operations.',
+      'Open-source autonomous Odoo 19 agent featuring real-time visible tool execution traces, per-model policy enforcement, approval dry-run gates, immutable audit ledger, and reversible write operations.',
     points: [
-      'Visible tool traces in conversation',
-      'Policy engine for models, operations, fields, domains',
-      'Approval gate with dry-run diffs',
-      'DeepSeek V4 flash → pro routing',
+      'Real-time visible tool execution traces in conversation',
+      'Per-model policy enforcement for models, fields & domains',
+      'Approval gates with dry-run diffs',
+      'Reversible write operations + DeepSeek V4 routing',
     ],
-    stack: ['Odoo 19', 'Python', 'OWL', 'DeepSeek V4'],
+    stack: ['Python', 'Odoo 19', 'OWL', 'DeepSeek V4'],
     link: { href: 'https://github.com/daovinhkhang/kami-odoo-agent', label: 'GitHub' },
     videos: [
       {
@@ -136,21 +136,21 @@ export const SYSTEMS = [
   {
     id: 'tasker',
     year: '2025–Present',
-    name: 'Tasker Platform Evolution (V2 → V5.0)',
-    short: 'Tasker V2→V5',
-    tag: 'bTaskee · Native Runtime · AI Mart',
+    name: 'BeeTa & Kai Dual Agent Platform (V2 → V5.0)',
+    short: 'BeeTa & Kai V5',
+    tag: 'bTaskee · 4 Markets (VN/TH/ID/MY) · AI Mart',
     badge: 'Production',
     tone: 'beige',
     hero: null,
     summary:
-      'End-to-end roadmap Tasker V2 → V5.0: multi-agent RAG (V3), LangGraph runtime (V4), then a native TaskerV5Runtime with PromptPack context, wiki evidence gates, ToolRegistry side effects, AI Mart personalization, and measured canary rollout.',
+      'Full-lifecycle production AI fleet across 4 markets powering BeeTa (Tasker onboarding & live operations) and Kai (omnichannel customer support across Mobile, TikTok DM, Zalo, LINE) — evolving from NodeRAG/ComposeRAG LangGraph (V3–V4) to TaskerV5Runtime with deterministic TURN_FACTS evidence gates and ClickHouse-to-MongoDB AI Mart personalization.',
     points: [
-      'V5 native turn loop — cleaner boundaries than graph-state V4',
-      'AI Mart scenarios with cohort rollout + kill-switch',
-      'Mobile Socket.IO streaming · multilang VN/TH/ID/MY',
-      'Retrieval latency ~30s → under 5s on V3–V4 path; V4-vs-V5 eval gates',
+      'NodeRAG, ComposeRAG & Meta-Thinker in LangGraph cutting retrieval ~6× (~30s → <5s)',
+      'Tasker V5.0 decoupled services (TaskerV5Runtime, PromptPack, ToolRegistry) + TURN_FACTS gates',
+      'AI Mart ClickHouse-to-MongoDB sync into 6 context slots (2,200-char prompt budget, cohort rollout & kill-switch)',
+      'Long-term context compaction + Socket.IO streaming + Agent Lab simulator & golden-trace E2E gates',
     ],
-    stack: ['Python', 'FastAPI', 'LangGraph', 'ClickHouse', 'MongoDB', 'Redis', 'Weaviate', 'Langfuse', 'MCP'],
+    stack: ['Python', 'FastAPI', 'LangGraph', 'Socket.IO', 'ClickHouse', 'MongoDB', 'Redis', 'Weaviate', 'Langfuse', 'MCP'],
     link: null,
     videos: [],
     images: [],
@@ -158,21 +158,21 @@ export const SYSTEMS = [
   {
     id: 'stt',
     year: '2024–2025',
-    name: 'Speech-to-Text · Vietnamese Accents',
+    name: 'Vietnamese Accent-Aware Speech-to-Text (EraX-WoW-medium)',
     short: 'Vietnamese ASR',
-    tag: 'EraX / Gtel · Whisper · ASR',
+    tag: 'EraX / Gtel · Whisper · CTranslate2 · Vast.ai',
     badge: 'Shipped',
     tone: 'mint',
     hero: null,
     summary:
-      'Accent-aware ASR pipeline for Vietnamese: Whisper finetuning, Faster-Whisper, CTranslate2, multi-region data, and production benchmarking.',
+      'Accent-aware Vietnamese Speech-to-Text pipeline: fine-tuned Whisper Medium on ~245,000 multi-regional audio samples (~870 hours) via Vast.ai cloud GPUs and accelerated production serving with Faster-Whisper and CTranslate2 on NVIDIA RTX 3090.',
     points: [
-      'Whisper Medium finetune · ~245k samples · ~870 hours',
-      'EraX-WoW-medium CER 0.066 / WER 0.107',
-      '~60% WER reduction vs baselines',
-      '~30% faster STT with CTranslate2 on RTX 3090',
+      'Whisper Medium fine-tune on ~245,000 samples (~870 hours) via Vast.ai GPUs',
+      'EraX-WoW-medium achieved CER 0.066 / WER 0.107 (~60% relative error reduction vs baselines)',
+      'Faster-Whisper & CTranslate2 serving on RTX 3090 cut transcription latency by ~30%',
+      'Complemented by 6 TensorFlow Lite on-device models (noise reduction, emotion, NER)',
     ],
-    stack: ['Whisper', 'Faster-Whisper', 'CTranslate2', 'Torchaudio', 'Librosa'],
+    stack: ['Whisper', 'Faster-Whisper', 'CTranslate2', 'Torchaudio', 'Librosa', 'Vast.ai', 'TFLite'],
     link: null,
     videos: [],
     images: [],
@@ -193,17 +193,18 @@ export function videoType(src = '') {
 export const EXPERIENCES = [
   {
     id: 'btaskee',
-    company: 'bTaskee',
-    role: 'AI / Backend Engineer — Tasker Platform (BeeTa)',
+    company: 'bTaskee (BeeTa & Kai Platform)',
+    role: 'AI / Backend Engineer — Core AI & Tasker Platform',
     time: 'Oct 2025 – Present',
     bullets: [
-      'Owned the Tasker assistant roadmap from V2 through V5.0 for Taskers across VN / TH / ID / MY.',
-      'Tasker V3–V4: NodeRAG, ComposeRAG, Meta-Thinker, and LangGraph-native runtime (route, memory, retrieval, execute, verify); cut retrieval latency from ~30s to under 5s (~6×).',
-      'Tasker V5.0 native runtime: re-architected the turn loop into explicit services — TaskerV5Runtime, PromptPack context orchestration, country-scoped wiki with score/char gates, ToolRegistry for schedule/escalation side effects, and post-turn memory gateway.',
-      'AI Mart personalization (V5 phases 1–6): live ClickHouse propensity signals into risk/growth/behavior slots; deterministic scenario engine with shadow mode, hash-stable cohort rollout, internal allowlist, kill-switch, and render-vs-control telemetry.',
-      'Production delivery: mobile Socket.IO streaming for V5, golden-trace / schedule / business-tool E2E evals, and V4-vs-V5 benchmarks to gate canary rollout with V4 as rollback baseline.',
+      'Dual Agent Fleet Ownership: Directed full engineering lifecycle across 4 markets (VN, TH, ID, MY), powering BeeTa (Tasker onboarding & live operations) and Kai (omnichannel customer support across Mobile, TikTok DM, Zalo, LINE).',
+      'RAG & Runtime Optimization (V3–V4): Architected NodeRAG, ComposeRAG, and a Meta-Thinker reasoning layer inside a LangGraph stateful runtime (routing, episodic memory, vector retrieval, verification), slashing retrieval latency ~6× (~30s → <5s).',
+      'Governed Service Runtime (V5.0): Engineered Tasker V5 decoupled services (TaskerV5Runtime, PromptPack, ToolRegistry) and enforced deterministic TURN_FACTS evidence gates for account states (ACTIVE/LOCKED) and action receipts — eliminating free-form LLM hallucinations.',
+      'Personalization Engine (AI Mart): Built ClickHouse-to-MongoDB sync pipeline streaming behavioral propensity signals into 6 context slots (identity, risk, capacity, behavior, growth, history) via 2,200-char budget-capped prompts with hash-stable cohort rollouts and kill-switches.',
+      'Long-Term Memory & Context Compaction: Architected unified in-process memory service and conversation compaction compressing multi-turn dialogue into source-grounded checkpoints while preserving entity IDs, temporal constraints, and cutting token costs.',
+      'Production Streaming & E2E Evaluation: Delivered mobile Socket.IO token streaming, built Agent Lab for isolated mobile simulation, and established automated golden-trace E2E benchmark gates for canary rollouts.',
     ],
-    stack: ['Python', 'FastAPI', 'LangChain', 'LangGraph', 'MongoDB', 'Redis', 'Weaviate', 'ClickHouse', 'Docker', 'MCP', 'Langfuse'],
+    stack: ['Python', 'FastAPI', 'LangGraph', 'Socket.IO', 'ClickHouse', 'MongoDB', 'Redis', 'Weaviate', 'Docker', 'MCP', 'Langfuse'],
   },
   {
     id: 'erax',
@@ -211,64 +212,103 @@ export const EXPERIENCES = [
     role: 'AI Engineer',
     time: 'Sep 2024 – Jul 2025',
     bullets: [
-      'Built LangChain Agent chatbot with Odoo integration and universal workflow engine.',
-      'Integrated Redis memory and vector database for semantic retrieval.',
-      'Developed 6 TensorFlow Lite mobile AI models (noise reduction, emotion detection, NER).',
-      'Led Speech-to-Text for Vietnamese accents: preprocessing, finetuning, benchmarking, Vast.ai training.',
+      'Enterprise Agent & Workflow: Engineered a LangChain autonomous agent integrated with Odoo ERP and a universal workflow orchestration engine for multi-department automation.',
+      'Memory & Semantic Retrieval: Implemented persistent Redis caching and vector databases for low-latency semantic context retrieval across high-concurrency enterprise queries.',
+      'Vietnamese ASR Pipeline: Fine-tuned Whisper Medium on ~245,000 multi-regional audio samples (~870 hours) via Vast.ai cloud GPUs, achieving CER 0.066 / WER 0.107 (~60% relative error reduction over baselines).',
+      'Serving Acceleration: Transitioned inference to Faster-Whisper and CTranslate2 on NVIDIA RTX 3090, reducing transcription latency by ~30%.',
+      'Mobile Edge AI: Developed and deployed 6 TensorFlow Lite on-device models for noise reduction, emotion classification, and named entity recognition (NER).',
     ],
-    stack: ['LangChain', 'Odoo', 'Whisper', 'TensorFlow Lite', 'CTranslate2', 'Redis'],
+    stack: ['LangChain', 'Odoo', 'Whisper', 'Faster-Whisper', 'CTranslate2', 'TensorFlow Lite', 'PyTorch', 'Redis', 'Vast.ai'],
   },
   {
     id: 'fptis',
-    company: 'FPT IS',
-    role: 'Intern AI Engineer',
+    company: 'FPT Information System (FPT IS)',
+    role: 'AI Engineer Intern',
     time: 'Jun 2023 – Sep 2023',
     bullets: [
-      'Built chatbot architecture using Flask.',
-      'Integrated DialoGPT and spaCy for intent analysis.',
-      'Optimized deep learning models for response accuracy and performance.',
+      'Chatbot Architecture: Built backend chatbot service architecture using Flask, powering enterprise conversational query routing.',
+      'NLP Intent Analysis: Integrated DialoGPT models and spaCy NLP pipelines for entity extraction, intent classification, and multi-turn dialogue management.',
+      'Performance Tuning: Benchmarked and tuned deep learning models for inference speed, minimizing response latency under peak loads.',
     ],
     stack: ['Flask', 'DialoGPT', 'spaCy', 'Python'],
   },
   {
     id: 'greenwich',
     company: 'FPT Greenwich',
-    role: 'Teaching Assistant — AI',
+    role: 'Teaching Assistant — Artificial Intelligence & Machine Learning',
     time: 'Feb 2023 – Nov 2024',
     bullets: [
-      'Guided students in ML, DL, and AI workshops.',
-      'Supported AI projects using Python, TensorFlow, and Colab.',
-      'Supported 50+ students; improved performance ~30%.',
+      'Course Instruction: Mentored 50+ undergraduate students across Machine Learning, Deep Learning, and Applied AI laboratory sessions.',
+      'Technical Workshops: Guided hands-on implementations in Python, TensorFlow, and PyTorch; improved cohort average project scores by ~30%.',
     ],
-    stack: ['Python', 'TensorFlow', 'Teaching'],
+    stack: ['Python', 'TensorFlow', 'PyTorch', 'Teaching'],
   },
 ];
 
 export const CAPABILITIES = [
   {
     num: '01',
-    title: 'AI Systems & LLM',
+    title: 'AI & LLM Systems',
     tone: 'lime',
-    items: ['LLMs · Transformers · LangChain · LangGraph · RAG', 'NodeRAG · ComposeRAG · Meta-Thinker', 'Multi-agent systems · tool calling · memory orchestration'],
+    items: [
+      'LangChain · LangGraph · Multi-Agent Orchestration',
+      'NodeRAG · ComposeRAG · GraphRAG · Vector Search',
+      'Tool Calling · Prompt Engineering · Evaluation Gates (Langfuse) · MCP',
+    ],
   },
   {
     num: '02',
-    title: 'Backend & Platform',
+    title: 'Backend, Data & Infra',
     tone: 'mint',
-    items: ['Python · FastAPI · Flask · Express', 'MongoDB · PostgreSQL · Redis · Weaviate', 'Docker · MCP · Langfuse'],
+    items: [
+      'Python (FastAPI, Flask) · Node.js (TypeScript, Express)',
+      'PostgreSQL · MongoDB · ClickHouse · Redis · Weaviate',
+      'RESTful APIs · WebSockets · Socket.IO · Docker · Linux · CI/CD · Git',
+    ],
   },
   {
     num: '03',
-    title: 'ML / ASR / Applied',
+    title: 'Machine Learning & ASR',
     tone: 'beige',
-    items: ['TensorFlow · Keras · Scikit-learn · BERT', 'Whisper · Faster-Whisper · Torchaudio · Librosa', 'Benchmarking · regression testing · observability'],
+    items: [
+      'PyTorch · TensorFlow · TFLite · Keras · Scikit-learn · Hugging Face',
+      'Whisper · Faster-Whisper · CTranslate2 · Torchaudio · Librosa',
+      'Model Fine-tuning & Quantization · RTX 3090 Serving Acceleration',
+    ],
   },
   {
     num: '04',
-    title: 'Additional',
-    items: ['TypeScript · JavaScript · React Native', 'Firebase · Redux · Axios', 'Scientific writing · English B1 Vstep'],
+    title: 'Platforms & Languages',
+    items: [
+      'Odoo ERP (v17/18/19, OWL framework) · Medusa 2.0 Headless Commerce',
+      'English (B1 VSTEP, Professional Working) · Vietnamese (Native)',
+      'Best Final Project (Spring 2024) · Certificate of Merit (RVR)',
+    ],
   },
 ];
+
+export const EDUCATION_INFO = {
+  school: 'University of Greenwich (UK) / FPT Greenwich',
+  location: 'Ho Chi Minh City, Vietnam',
+  degree: 'BSc (Hons) in Computing — First Class Honours',
+  period: '2020 – 2024',
+  honours: 'First Class Honours',
+  gpa: '3.7 / 4.0',
+  awards: ['Best Final Project Award (Spring 2024)', 'Certificate of Merit (RVR)'],
+};
+
+export const PUBLICATION = {
+  id: 'ssrn-5023739',
+  venue: 'SSRN Research Preprint (Social Science Research Network)',
+  year: 'Published 2024',
+  paperNo: '5023739',
+  href: 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5023739',
+  authors: 'Dao, Vinh Khang',
+  title:
+    'Evaluating Hybrid Deep Learning Models for Stock Price Forecasting: A Comparison of LSTM-GRU and Transformer-GRU Architectures',
+  summary:
+    'Investigated hybrid deep learning architectures (LSTM-GRU vs. Transformer-GRU) for multi-horizon financial time-series forecasting, benchmarked against classical recurrent networks.',
+};
 
 export const METHOD = [
   { phase: 'Phase 01', name: 'Discover', detail: 'Map processes and pinpoint where AI agents deliver measurable value.' },
@@ -279,16 +319,20 @@ export const METHOD = [
 
 export const TICKER = [
   'Production AI, not demos',
-  'LLM agents · RAG · multi-agent runtimes',
+  'Dual Agent Fleet · BeeTa & Kai (4 Markets)',
   'Ho Chi Minh City · Vietnam',
   'Open to AI / Backend roles',
   'KAMI for Odoo & Medusa',
 ];
 
 export const CREDENTIALS = [
-  { k: 'Odoo Apps Store', v: 'Commercial module' },
-  { k: 'First Class Honours', v: 'Greenwich University' },
-  { k: 'Best Final Project', v: 'Spring 2024' },
-  { k: 'SSRN preprint', v: 'Hybrid DL forecasting' },
-  { k: 'Certificate of Merit', v: 'RVR' },
+  { k: 'Odoo Apps Store', v: 'KAMI Pro commercial module' },
+  { k: 'First Class Honours', v: 'Greenwich · GPA 3.7 / 4.0' },
+  { k: 'Best Final Project', v: 'Spring 2024 · RVR Merit' },
+  {
+    k: 'SSRN Paper No. 5023739',
+    v: 'LSTM-GRU vs. Transformer-GRU ↗',
+    href: 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5023739',
+  },
+  { k: 'Dual Agent Fleet', v: 'bTaskee BeeTa & Kai · 4 Markets' },
 ];

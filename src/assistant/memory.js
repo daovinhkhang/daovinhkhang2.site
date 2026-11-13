@@ -67,6 +67,7 @@ const EN_CASUAL = ['hey', 'yo', 'hiya', 'gonna', 'wanna', 'thanks!', 'thx', 'pls
 const EN_FORMAL = ['would you', 'could you kindly', 'dear ', 'sincerely', 'i would like to'];
 
 const has = (text, words) => words.some((w) => text.includes(w));
+const hasWord = (text, words) => words.some((w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w}([^\\p{L}\\p{N}]|$)`, 'u').test(text));
 
 /** Read language + register from what the visitor actually typed. */
 export function inferStyle(texts) {
@@ -78,16 +79,18 @@ export function inferStyle(texts) {
 
   const isVi = /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/u.test(all);
 
-  const casual = (isVi ? has(all, VI_CASUAL) : has(all, EN_CASUAL)) || words.length < 12;
-  const formal = (isVi ? has(all, VI_FORMAL) : has(all, EN_FORMAL)) || /\b(please|kindly|respectfully)\b/.test(all);
+  const formal = (isVi ? hasWord(all, VI_FORMAL) : has(all, EN_FORMAL)) || /\b(please|kindly|respectfully)\b/.test(all);
+  const casual = (isVi ? hasWord(all, VI_CASUAL) : has(all, EN_CASUAL)) || (!formal && words.length < 12);
 
   let register = 'neutral';
   if (formal && !casual) register = 'formal';
   else if (casual && !formal) register = 'casual';
   else if (casual && formal) register = 'mixed';
 
-  // Which pronouns they use, so the reply can mirror the same pair.
-  const pronouns = ['mình', 'bạn', 'tớ', 'cậu', 'tôi', 'anh', 'chị', 'em'].filter((p) => all.includes(p));
+  // Which pronouns they use, so the reply can mirror the same pair (word-boundary safe so "system" != "em").
+  const pronouns = isVi
+    ? ['mình', 'bạn', 'tớ', 'cậu', 'tôi', 'anh', 'chị', 'em'].filter((p) => hasWord(all, [p]))
+    : [];
 
   return {
     lang: isVi ? 'vi' : 'en',

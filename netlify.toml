@@ -6,14 +6,20 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# The assistant proxy, mounted on the path its client calls.
+# The assistant & contact APIs, mounted on the paths the client calls.
 [[redirects]]
   from = "/api/chat"
   to = "/.netlify/functions/chat"
   status = 200
   force = true
 
-# SPA fallback. Declared after the API rule so it cannot swallow it.
+[[redirects]]
+  from = "/api/contact"
+  to = "/.netlify/functions/contact"
+  status = 200
+  force = true
+
+# SPA fallback. Declared after API rules so it cannot swallow them.
 [[redirects]]
   from = "/*"
   to = "/index.html"

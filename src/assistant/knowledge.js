@@ -8,7 +8,7 @@
 export const QUICK_REPLIES = [
   { label: 'Take the tour', intent: 'tour' },
   { label: 'KAMI for Odoo', intent: 'kami' },
-  { label: 'Tasker V2→V5', intent: 'tasker' },
+  { label: 'BeeTa & Kai V5', intent: 'tasker' },
   { label: 'Experience', intent: 'experience' },
   { label: 'Stack', intent: 'stack' },
   { label: 'Contact', intent: 'contact' },
@@ -31,17 +31,17 @@ const KB = [
   {
     id: 'tasker',
     anchor: '#experience',
-    keywords: ['tasker', 'btaskee', 'v2', 'v3', 'v4', 'v5', 'ai mart', 'langgraph', 'runtime', 'retrieval', 'latency'],
+    keywords: ['tasker', 'beeta', 'kai', 'btaskee', 'v2', 'v3', 'v4', 'v5', 'ai mart', 'turn_facts', 'agent lab', 'compaction', 'langgraph', 'runtime', 'retrieval', 'latency', 'zalo', 'tiktok', 'line'],
     answer:
-      'At bTaskee, Khang owned the Tasker roadmap from V2 through V5.0. V3–V4 introduced NodeRAG, ComposeRAG and a Meta-Thinker layer, then a LangGraph-native runtime — cutting retrieval from about 30s to under 5s (~6×). V5.0 re-architected the turn loop into explicit services: TaskerV5Runtime, PromptPack context, country-scoped wiki with evidence gates, ToolRegistry for side effects, and a post-turn memory gateway. AI Mart added personalisation with shadow mode, cohort rollout and a kill-switch.',
+      'At bTaskee, Khang owns the dual agent fleet across 4 markets (VN, TH, ID, MY): BeeTa (Tasker onboarding & live operations) and Kai (omnichannel customer support on Mobile, TikTok DM, Zalo, LINE). V3–V4 introduced NodeRAG, ComposeRAG, and Meta-Thinker in LangGraph (~30s → under 5s, ~6×). V5.0 added TaskerV5Runtime, PromptPack, ToolRegistry, deterministic TURN_FACTS evidence gates, ClickHouse-to-MongoDB AI Mart personalization (6 context slots, 2,200-char prompt budget), context compaction, Socket.IO streaming, Agent Lab simulation, and golden-trace E2E gates.',
     chips: ['See experience', 'Read the metrics', 'Talk to Khang'],
   },
   {
     id: 'stack',
     anchor: '#capabilities',
-    keywords: ['stack', 'tech', 'tools', 'python', 'fastapi', 'langchain', 'redis', 'mongo', 'weaviate', 'docker', 'typescript', 'skills', 'capabilities'],
+    keywords: ['stack', 'tech', 'tools', 'python', 'fastapi', 'langchain', 'redis', 'mongo', 'clickhouse', 'weaviate', 'docker', 'typescript', 'pytorch', 'huggingface', 'skills', 'capabilities'],
     answer:
-      'Core stack: Python, FastAPI, LangChain and LangGraph for agent runtimes; MongoDB, PostgreSQL, Redis and Weaviate for state and retrieval; Docker, MCP and Langfuse for delivery and observability. On the ML side: Whisper / Faster-Whisper / CTranslate2 for speech, TensorFlow and scikit-learn for modelling. Also TypeScript and React Native when the product needs a client.',
+      'AI & LLM: LangChain, LangGraph, NodeRAG, ComposeRAG, GraphRAG, MCP, Evaluation Gates (Langfuse). Backend & Data: Python (FastAPI, Flask), Node.js (TypeScript, Express), REST, WebSockets, Socket.IO, Docker, CI/CD, PostgreSQL, MongoDB, ClickHouse, Redis, Weaviate. ML & ASR: PyTorch, TensorFlow, TFLite, Keras, Scikit-learn, Hugging Face, Whisper, Faster-Whisper, CTranslate2, Torchaudio, Librosa — plus Odoo ERP (17–19, OWL) and Medusa 2.0.',
     chips: ['See capabilities', 'Talk to Khang'],
   },
   {
@@ -57,23 +57,23 @@ const KB = [
     anchor: '#experience',
     keywords: ['experience', 'work', 'job', 'career', 'history', 'erax', 'gtel', 'fpt', 'greenwich', 'teaching', 'role', 'company'],
     answer:
-      'Four roles so far: AI / Backend Engineer at bTaskee (Oct 2025 – present, Tasker platform), AI Engineer at EraX → Gtel (Sep 2024 – Jul 2025, LangChain agent with Odoo, plus speech-to-text), AI Engineer Intern at FPT IS (2023), and Teaching Assistant at FPT Greenwich (2023–2024). The full bullets are in the Experience section.',
+      'Four roles so far: AI / Backend Engineer at bTaskee (Oct 2025 – Present, BeeTa & Kai Dual Agent Fleet across 4 markets), AI Engineer at EraX → Gtel (Sep 2024 – Jul 2025, LangChain + Odoo workflow automation, Redis/vector DB, Vietnamese Whisper ASR, 6 TFLite mobile models), AI Engineer Intern at FPT IS (Jun–Sep 2023, Flask + DialoGPT/spaCy chatbot), and Teaching Assistant — AI & ML at FPT Greenwich (Feb 2023 – Nov 2024, mentored 50+ students in Python/TensorFlow/PyTorch, +30% project scores).',
     chips: ['Jump to experience', 'Talk to Khang'],
   },
   {
     id: 'education',
     anchor: '#education',
-    keywords: ['education', 'degree', 'university', 'greenwich', 'gpa', 'honours', 'honors', 'school', 'study', 'certificate'],
+    keywords: ['education', 'degree', 'university', 'greenwich', 'gpa', 'honours', 'honors', 'school', 'study', 'certificate', 'ssrn', 'paper', 'publication', 'forecasting', '5023739', 'lstm', 'transformer'],
     answer:
-      'BSc (Hons) in Computing at Greenwich University, 2020–2024, First Class Honours with a 3.7 / 4.0 GPA. He also received a Certificate of Merit (RVR) and Best Final Project in Spring 2024, and has an SSRN preprint on hybrid deep learning forecasting.',
-    chips: ['See education', 'Talk to Khang'],
+      'University of Greenwich (UK) / FPT Greenwich — BSc (Hons) in Computing (2020–2024), First Class Honours, GPA 3.7 / 4.0, Best Final Project Award (Spring 2024), and Certificate of Merit (RVR). Published 2024 SSRN Research Preprint (Paper No. 5023739): "Evaluating Hybrid Deep Learning Models for Stock Price Forecasting: A Comparison of LSTM-GRU and Transformer-GRU Architectures".',
+    chips: ['See education', 'SSRN Paper #5023739', 'Talk to Khang'],
   },
   {
     id: 'contact',
     anchor: '#contact',
-    keywords: ['contact', 'email', 'hire', 'available', 'reach', 'phone', 'linkedin', 'github', 'talk', 'call', 'freelance', 'job'],
+    keywords: ['contact', 'email', 'hire', 'available', 'reach', 'phone', 'linkedin', 'github', 'talk', 'call', 'freelance', 'job', 'liên hệ', 'form', 'nhắn', 'gửi'],
     answer:
-      'Easiest route is email: daovinhkhang0834@gmail.com. Phone is +84 834 684 568. He is also on LinkedIn (dao-vinh-khang) and GitHub (@daovinhkhang). Open to production AI and backend work.',
+      'You can use the guided inquiry form right in #contact (pick a topic like Hiring, AI Build, or Advisory and I can help draft your brief right beside you), or reach Dao Vinh Khang directly at daovinhkhang0834@gmail.com or +84 834 684 568.',
     chips: ['Jump to contact', 'Copy email'],
   },
   {
@@ -95,9 +95,9 @@ const KB = [
   {
     id: 'this-site',
     anchor: '#top',
-    keywords: ['site', 'website', 'built', 'design', 'portfolio', 'this page', 'stack of this'],
+    keywords: ['site', 'website', 'built', 'design', 'portfolio', 'this page', 'stack of this', 'sandbox', 'tool', 'workflow'],
     answer:
-      'This site is a React + Vite single-page build, styled after the Vinamilk design system — cream #FFFFF1 canvas, blue #0213B0 ink, Archivo for display, Newsreader for body, IBM Plex Mono for technical labels. No CSS framework, no router: plain CSS custom properties and a small IntersectionObserver for reveal animations.',
+      'This site is a React + Vite single-page build styled after the Vinamilk design system, with an embedded agent widget that drives the page, renders structured cards, runs isolated Web Worker code sandboxes, and synthesizes reusable session tools under approval gates.',
     chips: ['See the work', 'Talk to Khang'],
   },
 ];
@@ -148,9 +148,11 @@ const CHIP_ACTIONS = {
   Contact: { intent: 'contact' },
   'Send an email': { href: 'mailto:daovinhkhang0834@gmail.com' },
   'Open on Odoo Apps': { href: 'https://apps.odoo.com/apps/modules/19.0/kami_agent' },
+  'SSRN Paper #5023739': { href: 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5023739' },
   'Talk to Khang': { href: 'mailto:daovinhkhang0834@gmail.com' },
   'Copy email': { copy: 'daovinhkhang0834@gmail.com' },
   'KAMI for Odoo': { intent: 'kami' },
+  'BeeTa & Kai V5': { intent: 'tasker' },
   'Tasker V2→V5': { intent: 'tasker' },
   Experience: { intent: 'experience' },
   Stack: { intent: 'stack' },

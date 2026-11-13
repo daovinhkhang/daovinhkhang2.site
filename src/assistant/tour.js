@@ -42,21 +42,21 @@ export const STOPS = {
     spot: '.stats-grid',
     title: 'The numbers',
     narration:
-      'The numbers he would point to first: retrieval cut from about 30 seconds to under 5, and speech-to-text at CER 0.066 — roughly 60% better than baseline.',
+      'The numbers he points to first: BeeTa & Kai dual agent fleet across 4 markets, retrieval latency cut ~6x (30s to under 5s), and Vietnamese speech-to-text at CER 0.066.',
   },
   experience: {
     scroll: '#experience',
     spot: '#experience .exp-list',
     title: 'Where he has worked',
     narration:
-      'Four roles so far: bTaskee on the Tasker platform now, EraX and Gtel before that, then FPT IS, and teaching AI at FPT Greenwich.',
+      'Four roles so far: bTaskee leading the BeeTa & Kai fleet now, EraX / Gtel before that, FPT Information System as intern, and Teaching Assistant in AI & ML at FPT Greenwich.',
   },
   education: {
     scroll: '#education',
     spot: '#education .edu-grid',
-    title: 'Education',
+    title: 'Education & Research',
     narration:
-      'BSc (Hons) in Computing at Greenwich University, First Class Honours with a 3.7 GPA — plus Best Final Project in Spring 2024.',
+      'BSc (Hons) in Computing at University of Greenwich / FPT Greenwich with First Class Honours (3.7 / 4.0 GPA), Best Final Project, plus SSRN Paper No. 5023739 on hybrid deep learning forecasting.',
   },
   contact: {
     scroll: '#contact',

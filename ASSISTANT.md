@@ -61,9 +61,13 @@ shows a dead chat box.
 | File | Role |
 | --- | --- |
 | `AssistantWidget.jsx` | drawer, companion mode, launcher, thread state |
-| `client.js` | the agent loop, history shaping, local fallback |
-| `director.js` | executes a call on the page: pointer, spotlight, notes, scroll |
-| `tools.js` | tool schemas, landmarks and links, shared by proxy and client |
+| `AgentArtifacts.jsx` | generative UI cards, sandbox traces, approval gates, tool manager |
+| `client.js` | the agent loop, history shaping, sandbox/registry orchestration, fallback |
+| `corpus.js` | unified read-only portfolio + CV/SSRN corpus and free-text search |
+| `sandbox.js` | isolated Web Worker runtime (no DOM/network, 1500ms cap) + action bridge |
+| `registry.js` | session tool registry (`localStorage`), dry-run verifier, prompt summary |
+| `director.js` | executes a call on the page: pointer, spotlight, notes, scroll, workflows |
+| `tools.js` | tool schemas, landmarks, artifact validators, shared by proxy and client |
 | `src/content.js` | page content, rendered by App and read by `read_page` |
 | `knowledge.js` | curated answers used when the API is unavailable |
 | `memory.js` | localStorage profile, style inference, viewport context |
@@ -86,13 +90,20 @@ target that does not exist. Every target is an enum resolved by `validateCall`.
 
 | Tool | Effect |
 | --- | --- |
-| `read_page` | returns live text of a section, landmark, system or role (silent) |
+| `read_page` | returns live text of a section, landmark, system, role or publication (silent) |
+| `search_site` | free-text search across portfolio and full CV/SSRN corpus (silent) |
 | `navigate` | scrolls to a section or landmark |
 | `show_system` | pointer presses the tab, the system opens |
 | `open_experience` | pointer presses the role, the accordion opens |
 | `point_at` | pointer flies to a landmark, rings it, pins a note beside it |
 | `play_demo` | opens a KAMI system and plays its demo, muted |
+| `press` | clicks a contact link or Odoo listing via pointer |
 | `copy_contact` | copies email or phone; reports honestly if the browser blocks it |
+| `run_workflow` | runs a multi-step choreography sequence in one turn |
+| `render_view` | renders interactive cards, JD match views, tables, metrics, timelines, or architectures |
+| `execute_code` | runs JS in an isolated Web Worker sandbox (`DATA` + `ctx` helpers + safe action bridge) |
+| `create_tool` | compiles, dry-runs, and saves a reusable custom code or workflow tool in session registry |
+| `run_custom_tool` | executes a previously synthesized tool (with Dry-Run Approval Gate if gated) |
 | `suggest_replies` | 2–4 buttons in the visitor's language: a follow-up or a link |
 | `start_tour` | hands over to the self-advancing tour with its own route |
 
