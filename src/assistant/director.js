@@ -25,9 +25,12 @@ const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
 
 /** What is covering the page: the sticky header on top, the companion below. */
 function obstruction() {
-  const header = document.querySelector('.site-header');
-  const ticker = document.querySelector('.ticker');
-  let top = (header?.getBoundingClientRect().height ?? 0) + (ticker?.getBoundingClientRect().height ?? 0);
+  const hr = document.querySelector('.site-header')?.getBoundingClientRect();
+  const tr = document.querySelector('.ticker')?.getBoundingClientRect();
+  let top = Math.max(
+    hr && hr.bottom > 0 && hr.top < 160 ? hr.bottom : 0,
+    tr && tr.bottom > 0 && tr.top < 160 ? tr.bottom : 0,
+  );
   // On a phone the companion is a full-width sheet; reflect whether it sits at top or bottom.
   const sheet = document.querySelector('.as-panel.is-companion');
   let bottom = 0;
@@ -190,35 +193,119 @@ function settle(max = 1600) {
   });
 }
 
-/** Smooth-scroll an element into the part of the viewport nothing covers. */
-export function scrollIntoView(el, extra = 12) {
-  if (!el) return;
+/** Compute the unobstructed sightline band, leaving breathing room for sticky UI, spotlight, and pointer bubble. */
+export function sightlineBand(extra = 28) {
   const { top: covered, bottom } = obstruction();
-  const r = el.getBoundingClientRect();
-  const room = window.innerHeight - covered - bottom;
-  // Short targets are centred in the free band; tall ones start at its top.
-  const lead = r.height < room - 2 * extra ? (room - r.height) / 2 : extra;
-  const top = r.top + window.scrollY - covered - Math.min(lead, room * 0.3);
-  window.scrollTo({ top: Math.max(0, top), behavior: reduce() ? 'auto' : 'smooth' });
+  const vh = window.innerHeight || 800;
+  const band = Math.max(140, vh - covered - bottom);
+  const topReserve = Math.min(Math.max(24, extra), Math.round(band * 0.14));
+  const bottomReserve = Math.min(88, Math.max(48, Math.round(band * 0.14)));
+  const safeTop = covered + topReserve;
+  const safeBottom = Math.max(safeTop + 96, vh - bottom - bottomReserve);
+  return {
+    vh,
+    covered,
+    bottom,
+    topReserve,
+    bottomReserve,
+    safeTop,
+    safeBottom,
+    safeHeight: Math.max(96, safeBottom - safeTop),
+  };
 }
 
-function isComfortablyInView(el, extra = 20) {
-  if (!el) return false;
-  const { top: covered, bottom } = obstruction();
+function computeScrollTargetY(el, extra = 28) {
+  const { vh, covered, topReserve, safeHeight } = sightlineBand(extra);
   const r = el.getBoundingClientRect();
-  const safeTop = covered + Math.min(extra, 16);
-  const safeBottom = window.innerHeight - bottom - 12;
-  if (r.height <= safeBottom - safeTop) {
+  // Frame short/medium targets near the upper-middle sweet spot; frame tall containers cleanly below sticky chrome.
+  const lead =
+    r.height <= safeHeight
+      ? Math.max(topReserve, Math.min((safeHeight - r.height) * 0.42 + topReserve, safeHeight * 0.32 + topReserve))
+      : topReserve;
+  const rawTop = r.top + window.scrollY - covered - lead;
+  const docHeight = Math.max(document.documentElement?.scrollHeight || 0, document.body?.scrollHeight || 0);
+  const maxScroll = docHeight > vh ? docHeight - vh : Math.max(0, rawTop);
+  return Math.round(clamp(rawTop, 0, maxScroll));
+}
+
+/** Smooth-scroll an element into the part of the viewport nothing covers. */
+export function scrollIntoView(el, extra = 28) {
+  if (!el) return false;
+  const targetY = computeScrollTargetY(el, extra);
+  if (Math.abs(targetY - window.scrollY) < 4) return false;
+  window.scrollTo({ top: targetY, behavior: reduce() ? 'auto' : 'smooth' });
+  return true;
+}
+
+export function isComfortablyInView(el, extra = 28) {
+  if (!el) return false;
+  const { covered, safeTop, safeBottom, safeHeight } = sightlineBand(extra);
+  const r = el.getBoundingClientRect();
+  if (r.width <= 0 && r.height <= 0) return false;
+  if (r.height <= safeHeight) {
     return r.top >= safeTop && r.bottom <= safeBottom;
   }
-  return r.top >= covered && r.top <= window.innerHeight * 0.42 && r.bottom >= covered + 180;
+  const visibleOverlap = Math.min(r.bottom, safeBottom) - Math.max(r.top, safeTop);
+  return (
+    r.top >= covered + 10 &&
+    r.top <= covered + Math.min(92, safeHeight * 0.22) &&
+    visibleOverlap >= Math.min(r.height, safeHeight * 0.76)
+  );
 }
 
-async function bring(el, extra) {
+async function bring(el, extra = 28) {
   if (!el) return;
   if (isComfortablyInView(el, extra)) return;
-  scrollIntoView(el, extra);
+  if (!scrollIntoView(el, extra)) return;
   await settle();
+}
+
+function panelVerticalOcclusion(el) {
+  const sheet = document.querySelector('.as-panel.is-companion');
+  if (!sheet || !el) return null;
+  const pr = sheet.getBoundingClientRect();
+  const tr = el.getBoundingClientRect();
+  if (pr.width <= 0 || pr.height <= 0 || tr.width <= 0 || tr.height <= 0) return null;
+  if (overlapArea(expandRect(tr, 10), pr) <= 0) return null;
+  const vw = window.innerWidth || 1280;
+  const vh = window.innerHeight || 800;
+  if (pr.width > vw * 0.65 || (pr.left <= tr.right && pr.right >= tr.left)) {
+    return pr.top + pr.height / 2 > vh / 2
+      ? { side: 'bottom', limit: pr.top - 22 }
+      : { side: 'top', limit: pr.bottom + 22 };
+  }
+  return null;
+}
+
+/**
+ * Ensure `el` sits comfortably in the visitor's sightline before spotlight/pointer cues appear:
+ * scrolls cleanly into the safe band when off-screen/clipped, moves the chat drawer if overlapping,
+ * and applies a minimal vertical adjustment if a wide layout keeps the panel above/below the target.
+ */
+async function ensureInSightline(el, { extra = 30, dodgeEl = el } = {}) {
+  if (!el) return;
+  await bring(el, extra);
+  if (dodgeEl) await avoidOverlap(dodgeEl);
+  const occ = panelVerticalOcclusion(el);
+  if (!occ) return;
+  const { covered, vh } = sightlineBand(extra);
+  const tr = el.getBoundingClientRect();
+  const docHeight = Math.max(document.documentElement?.scrollHeight || 0, document.body?.scrollHeight || 0);
+  const maxScroll = docHeight > vh ? docHeight - vh : Infinity;
+  let nextScrollY = window.scrollY;
+  if (occ.side === 'bottom' && tr.bottom > occ.limit) {
+    const maxUp = Math.max(0, tr.top - (covered + 20));
+    const needed = Math.min(tr.bottom - occ.limit, maxUp);
+    if (needed >= 16) nextScrollY = clamp(window.scrollY + needed, 0, maxScroll);
+  } else if (occ.side === 'top' && tr.top < occ.limit) {
+    const maxDown = Math.max(0, vh - 56 - tr.bottom);
+    const needed = Math.min(occ.limit - tr.top, maxDown);
+    if (needed >= 16) nextScrollY = Math.max(0, window.scrollY - needed);
+  }
+  if (Math.abs(nextScrollY - window.scrollY) >= 4) {
+    window.scrollTo({ top: Math.round(nextScrollY), behavior: reduce() ? 'auto' : 'smooth' });
+    await settle();
+  }
 }
 
 /* ---- the pointer --------------------------------------------------------- */
@@ -248,12 +335,14 @@ function positionCursorBubble(c, x, y) {
   if (!bubble) return;
   const vw = window.innerWidth || 1280;
   const vh = window.innerHeight || 800;
+  const { top: covered } = obstruction();
   const msgRect = document.getElementById('contact-message')?.getBoundingClientRect();
   const aboveUpperForm =
     Boolean(msgRect && document.getElementById('contact-form')?.contains(activeTargetEl)) &&
     y < msgRect.top - 10;
+  const canFlipUp = y - 64 > covered;
   bubble.classList.toggle('is-left', x > vw - 265);
-  bubble.classList.toggle('is-up', y > vh - 140 || aboveUpperForm);
+  bubble.classList.toggle('is-up', canFlipUp && (y > vh - 140 || aboveUpperForm));
 }
 
 /** Update the mini speech bubble attached to `.ai-cursor` in parallel with main chat. */
@@ -321,9 +410,14 @@ async function flyTo(el, { press = false, duration = 640 } = {}) {
   await frame();
   c.classList.add('is-on');
   const r = el.getBoundingClientRect();
-  // Aim a little inside the top-left third: where a hand would actually point.
-  const x = Math.min(window.innerWidth - 28, Math.max(8, r.left + Math.min(r.width * 0.32, 160)));
-  const y = Math.min(window.innerHeight - 28, Math.max(8, r.top + Math.min(r.height * 0.4, 56)));
+  const { top: covered } = obstruction();
+  const vh = window.innerHeight || 800;
+  const visibleTop = Math.max(r.top, covered + 8);
+  const visibleBottom = Math.min(r.bottom, vh - 32);
+  const visibleH = Math.max(24, visibleBottom - visibleTop);
+  // Aim a little inside the top-left third of the visible band: where a hand would actually point.
+  const x = Math.min((window.innerWidth || 1280) - 28, Math.max(8, r.left + Math.min(r.width * 0.32, 160)));
+  const y = clamp(visibleTop + Math.min(visibleH * 0.38, 52), covered + 10, Math.max(covered + 10, vh - 36));
   lastCursorX = x;
   lastCursorY = y;
   positionCursorBubble(c, x, y);
@@ -1112,9 +1206,7 @@ export async function runContactWalkthrough(formEl, { patch = {}, isVi, nonBlock
   const myWalk = ++contactWalkToken;
   const useVi = typeof isVi === 'boolean' ? isVi : detectViDialogue();
 
-  await bring(formEl, 24);
-  if (myWalk !== contactWalkToken) return { walked: [], cancelled: true };
-  await avoidOverlap(formEl);
+  await ensureInSightline(formEl, { extra: 26, dodgeEl: formEl });
   if (myWalk !== contactWalkToken) return { walked: [], cancelled: true };
 
   let disposeActiveSpot = () => {};
@@ -1142,6 +1234,9 @@ export async function runContactWalkthrough(formEl, { patch = {}, isVi, nonBlock
     const tip = useVi ? step.vi : step.en;
     const targetEl = landmark(step.landmarkId) || formEl;
     const stepTitle = LANDMARKS[step.landmarkId]?.label || step.key;
+
+    await ensureInSightline(targetEl, { extra: 30, dodgeEl: i === 0 ? formEl : targetEl });
+    if (myWalk !== contactWalkToken || !document.body.contains(formEl)) return false;
 
     window.dispatchEvent(
       new CustomEvent('ai:contact-fill', {
@@ -1228,9 +1323,7 @@ async function runPointSweep(rawStops, { nonBlocking = true } = {}) {
     ? document.querySelector('#contact .contact-channels, #contact .contact-direct, #contact .contact-grid') || firstEl
     : firstEl;
 
-  await bring(firstEl, 40);
-  if (myWalk !== contactWalkToken) return { walked: [], first: null };
-  await avoidOverlap(dodgeEl);
+  await ensureInSightline(firstEl, { extra: 34, dodgeEl });
   if (myWalk !== contactWalkToken) return { walked: [], first: null };
 
   let disposeActiveSpot = () => {};
@@ -1238,6 +1331,10 @@ async function runPointSweep(rawStops, { nonBlocking = true } = {}) {
     if (myWalk !== contactWalkToken) return false;
     const stop = stops[idx];
     if (!stop?.el || !document.body.contains(stop.el)) return false;
+    if (idx > 0 || !isComfortablyInView(stop.el, 30)) {
+      await ensureInSightline(stop.el, { extra: 34, dodgeEl: idx === 0 ? dodgeEl : stop.el });
+      if (myWalk !== contactWalkToken || !document.body.contains(stop.el)) return false;
+    }
     disposeActiveSpot();
     disposeActiveSpot = spotlight(stop.el, stop.label, '');
     await flyTo(stop.el, { duration: 380 });
@@ -1300,11 +1397,11 @@ export async function runTool({ name, args }) {
     case 'navigate': {
       const el = landmark(args.to) || document.getElementById(args.to);
       if (!el) return { result: `Could not find ${args.to}.`, step: '' };
-      await bring(el, 24);
+      await bring(el, 26);
       const focusEl = el.matches?.('section, header')
         ? el.querySelector('.hero-title, .sec-head, .tabs, .exp-list, #contact-form, .contact-grid') || el
         : el;
-      await avoidOverlap(focusEl);
+      await ensureInSightline(focusEl, { extra: 26, dodgeEl: focusEl });
       await flyTo(focusEl, { duration: 420 });
       setCursorSpeech(args.say || LANDMARKS[args.to]?.label || args.to, { duration: 4200 });
       return { result: `Scrolled to ${args.to}; it is on screen.`, step: args.say, shown: true };
@@ -1314,22 +1411,21 @@ export async function runTool({ name, args }) {
     case 'play_demo': {
       const tabs = document.querySelector('#work .tabs');
       const tab = document.getElementById(`tab-${args.system}`);
-      await bring(tabs || tab, 24);
-      await avoidOverlap(tab || tabs);
+      await ensureInSightline(tab || tabs, { extra: 26, dodgeEl: tab || tabs });
       await flyTo(tab, { press: true });
       const sys = SYSTEM_DATA.find((s) => s.id === args.system);
       setCursorSpeech(args.say || `Opening ${sys?.short || args.system}`, { duration: 4200 });
       window.dispatchEvent(new CustomEvent('ai:show-system', { detail: { id: args.system } }));
       await wait(180);
       if (name === 'show_system') {
-        const focusEl = document.querySelector('#work .sys-copy') || document.querySelector('#work .sys-panel');
-        if (focusEl) await avoidOverlap(focusEl);
+        const panelEl = document.querySelector('#work .sys-panel');
+        const focusEl = document.querySelector('#work .sys-copy') || panelEl;
+        if (focusEl) await ensureInSightline(focusEl, { extra: 26, dodgeEl: panelEl || focusEl });
         return { result: `Opened ${sys?.name || args.system}; its panel is visible.`, step: args.say, shown: true };
       }
       const video = document.querySelector('#work .video-stack video');
       if (!video) return { result: 'This system has no demo video.', step: args.say, shown: true };
-      await bring(video, 24);
-      await avoidOverlap(video);
+      await ensureInSightline(video, { extra: 26, dodgeEl: video });
       await flyTo(video, { press: true });
       setCursorSpeech(args.say || `Playing ${sys?.short || ''} demo`, { duration: 4200 });
       try {
@@ -1346,13 +1442,15 @@ export async function runTool({ name, args }) {
       const rows = [...document.querySelectorAll('#experience .exp-item')];
       const row = rows[ROLES.findIndex((j) => j.id === args.company)];
       const trigger = row?.querySelector('.exp-trigger');
-      await bring(row || document.getElementById('experience'), 24);
-      await avoidOverlap(trigger || row);
+      await ensureInSightline(trigger || row || document.getElementById('experience'), {
+        extra: 28,
+        dodgeEl: trigger || row,
+      });
       await flyTo(trigger, { press: true });
       setCursorSpeech(args.say || `${job?.company || args.company}`, { duration: 4200 });
       window.dispatchEvent(new CustomEvent('ai:open-experience', { detail: { id: args.company } }));
       await wait(420); // the accordion opens on a 0.4s transition
-      if (row) await avoidOverlap(row);
+      if (row) await ensureInSightline(row, { extra: 26, dodgeEl: row });
       return { result: `Expanded ${job?.company} (${job?.role}).`, step: args.say, shown: true };
     }
 
@@ -1380,8 +1478,7 @@ export async function runTool({ name, args }) {
     case 'press': {
       const el = landmark(args.target);
       if (!el) return { result: `${args.target} is not on screen right now.`, step: '', shown: false };
-      await bring(el, 40);
-      await avoidOverlap(el);
+      await ensureInSightline(el, { extra: 34, dodgeEl: el });
       await flyTo(el, { press: true });
       const label = LANDMARKS[args.target].label;
       setCursorSpeech(args.say || `Opening ${label}`, { duration: 3800 });
@@ -1403,8 +1500,7 @@ export async function runTool({ name, args }) {
     case 'copy_contact': {
       const el = landmark(args.what === 'email' ? 'contact-email' : 'contact-phone');
       const value = args.what === 'email' ? LINKS.email.slice(7) : '+84 834 684 568';
-      await bring(el, 40);
-      await avoidOverlap(el);
+      await ensureInSightline(el, { extra: 34, dodgeEl: el });
       await flyTo(el, { press: true });
       try {
         await navigator.clipboard.writeText(value);
@@ -1459,8 +1555,7 @@ export async function runTool({ name, args }) {
       const landmarkId = fieldMap[focusKey] || 'contact-form';
 
       contactWalkToken += 1;
-      await bring(formEl, 24);
-      await avoidOverlap(formEl);
+      await ensureInSightline(formEl, { extra: 26, dodgeEl: formEl });
       window.dispatchEvent(
         new CustomEvent('ai:contact-fill', {
           detail: {
@@ -1472,6 +1567,7 @@ export async function runTool({ name, args }) {
       );
       await wait(80);
       const updatedTarget = landmark(landmarkId) || landmark('contact-form') || formEl;
+      await ensureInSightline(updatedTarget, { extra: 30, dodgeEl: formEl });
       await flyTo(updatedTarget, { press: Boolean(Object.keys(patch).length && focusKey !== 'submit') });
       const calloutTitle = LANDMARKS[landmarkId]?.label || 'Contact form';
       setCursorSpeech(args.note || args.say || calloutTitle, { duration: 5400 });
@@ -1585,9 +1681,12 @@ if (typeof window !== 'undefined' && !window.__aiCursorPointBound) {
     const targetId = CONTACT_FIELD_IDS[field];
     const targetEl = targetId ? document.getElementById(targetId) : null;
     if (!targetEl) return;
-    contactWalkToken += 1;
+    const myToken = ++contactWalkToken;
+    const formEl = document.getElementById('contact-form');
+    await ensureInSightline(targetEl, { extra: 30, dodgeEl: formEl || targetEl });
+    if (myToken !== contactWalkToken || !document.body.contains(targetEl)) return;
     await flyTo(targetEl, { press: false, duration: 440 });
-    if (note) setCursorSpeech(note, { duration: 4800 });
+    if (note && myToken === contactWalkToken) setCursorSpeech(note, { duration: 4800 });
   });
   window.addEventListener('ai:cursor-walk-all', async (e) => {
     const formEl = document.getElementById('contact-form') || document.getElementById('contact');
